@@ -566,7 +566,11 @@ bot.action(/decline_(\d+)/, async (ctx) => {
         userData.expecting = null; // Clear the flag after receiving bank details
         await setUserData(userId, userData);
         await handleBankPackageSelection(ctx, userId); // Proceed to package selection
-
+} else if (userData && userData.expecting === 'usdt_address') {
+        userData.usdtAddress = ctx.message.text;
+        userData.expecting = null; // Clear the flag after receiving USDT address
+        await setUserData(userId, userData);
+        await handleCryptoPackageSelection(ctx, userId); // Proceed to package selection
     // Check if the user is the admin
 } else if (step === 'name') {
     taskData[userId].name = ctx.message.text;
@@ -613,12 +617,6 @@ await Promise.all(usersSnapshot.docs.map(async (doc) => {
         await setUserData(ctx.from.id.toString(), adminData); // Update admin data in Firestore
 
         ctx.reply("✅ Announcement sent to all users.");
-    }
-    } else if (userData && userData.expecting === 'usdt_address') {
-        userData.usdtAddress = ctx.message.text;
-        userData.expecting = null; // Clear the flag after receiving USDT address
-        await setUserData(userId, userData);
-        await handleCryptoPackageSelection(ctx, userId); // Proceed to package selection
     }
 });
 
