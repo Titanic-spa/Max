@@ -569,14 +569,6 @@ bot.action(/decline_(\d+)/, async (ctx) => {
 
     }
     // Check if the user is the admin
- else if (userId === '6478320664') { // Replace with the actual admin ID
-        const adminData = await getUserData(userId);
-
-        // If the admin is expecting to input a new balance
-        if (adminData && adminData.expecting === 'balance') {
-            // Handle the balance edit
-            await editBalance(ctx);
-        }
 } else if (step === 'name') {
     taskData[userId].name = ctx.message.text;
     ctx.reply(`Task name set to: ${ctx.message.text}`);
