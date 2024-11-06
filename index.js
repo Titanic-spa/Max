@@ -567,7 +567,6 @@ bot.action(/decline_(\d+)/, async (ctx) => {
         await setUserData(userId, userData);
         await handleBankPackageSelection(ctx, userId); // Proceed to package selection
 
-    }
     // Check if the user is the admin
 } else if (step === 'name') {
     taskData[userId].name = ctx.message.text;
