@@ -619,8 +619,6 @@ await Promise.all(usersSnapshot.docs.map(async (doc) => {
         ctx.reply("✅ Announcement sent to all users.");
     }
   }
-}
-});
 
 // Handle the log_users callback
 bot.action('log_users', async (ctx) => {
