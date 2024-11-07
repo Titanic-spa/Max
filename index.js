@@ -84,7 +84,7 @@ bot.start(async (ctx) => {
 
     if (userData && userData.paymentStatus === 'Registered') {
         // Registered user, show the main menu
-        ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -97,6 +97,9 @@ bot.start(async (ctx) => {
                 ]
             }
         });
+
+        // Save the message ID to delete later when needed
+        ctx.session.mainMenuMessageId = mainMenuMessage.message_id;
     } else {
         // New or unregistered user
         // If they came through a referral link and are not registered, save the referrer
@@ -113,6 +116,77 @@ bot.start(async (ctx) => {
                 inline_keyboard: [[{ text: 'Continue', callback_data: 'continue' }]]
             }
         });
+    }
+});
+
+// Handle balance request
+bot.action('balance', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userData = await getUserData(userId);
+
+    let responseMessage;
+
+    if (userData && userData.paymentStatus === 'Registered') {
+        const userPoints = userData.balance || 0;
+        responseMessage = `🌟Your Total Points is ${userPoints} Points⛷️.`;
+    } else {
+        responseMessage = "❌You need to be registered to check your balance🚫.";
+    }
+
+    // Delete the main menu message
+    if (ctx.session.mainMenuMessageId) {
+        try {
+            await ctx.deleteMessage(ctx.session.mainMenuMessageId);
+        } catch (e) {
+            console.log("Failed to delete main menu message", e);
+        }
+    }
+
+    // Send the balance message with a 'Back' button
+    const sentMessage = await ctx.reply(responseMessage, {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: 'Back', callback_data: 'back_to_menu' }] // Back button below the balance message
+            ]
+        }
+    });
+
+    // Save the balance message ID to delete later when needed
+    ctx.session.balanceMessageId = sentMessage.message_id;
+});
+
+// Handle 'Back' button to return to the main menu
+bot.action('back_to_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userData = await getUserData(userId);
+
+    // Delete the balance message
+    if (ctx.session.balanceMessageId) {
+        try {
+            await ctx.deleteMessage(ctx.session.balanceMessageId);
+        } catch (e) {
+            console.log("Failed to delete balance message", e);
+        }
+    }
+
+    // Show the main menu again
+    if (userData && userData.paymentStatus === 'Registered') {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🏦Balance', callback_data: 'balance' }],
+                    [{ text: '👷Tasks', callback_data: 'tasks' }],
+                    [{ text: '💁Support', callback_data: 'support' }],
+                    [{ text: '💑Friends', callback_data: 'friends' }],
+                    [{ text: '🔄Withdrawal', callback_data: 'withdrawal' }],
+                    [{ text: '📈Top Earners', callback_data: 'top_earners' }],
+                    [{ text: '🎉Claim', callback_data: 'claim' }]
+                ]
+            }
+        });
+
+        // Save the message ID to delete later when needed
+        ctx.session.mainMenuMessageId = mainMenuMessage.message_id;
     }
 });
 // Handle "make_announcement" button press
@@ -141,28 +215,7 @@ bot.action('friends', async (ctx) => {
     ctx.reply(`📢Earn 150 points from each friend invited.\nShare your referral link:\n🖇️ ${referralLink}\n\n👥 Friends Invited: ${invitedFriendsCount}`);
 });
 
-// Handle balance request
-bot.action('balance', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const userData = await getUserData(userId);
 
-    let responseMessage;
-
-    if (userData && userData.paymentStatus === 'Registered') {
-        const userPoints = userData.balance || 0;
-        responseMessage = `🌟Your Total Points is ${userPoints} Points⛷️.`;
-    } else {
-        responseMessage = "❌You need to be registered to check your balance🚫.";
-    }
-
-    // Send the message and store the message ID
-    const sentMessage = await ctx.reply(responseMessage);
-
-    // Set a timeout to delete the message after 10 seconds
-    setTimeout(() => {
-        ctx.deleteMessage(sentMessage.message_id);
-    }, 5000); // 5 seconds in milliseconds
-});
 
 // Handle support command
 bot.action('support', (ctx) => {
