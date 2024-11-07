@@ -485,27 +485,7 @@ bot.on('photo', async (ctx) => {
     ctx.reply("📝Submit your Bank Name or Transaction Hash if it was Usdt you sent.");
 });
 
-// Separate functions to modularize the code and improve readability
 
-// Function to handle transaction hash submission
-async function handleTransactionHash(ctx, userId, userData) {
-    userData.tnxHash = ctx.message.text;
-    userData.expecting = null;
-    await setUserData(userId, userData);
-
-    const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
-    const sentMessage = await ctx.telegram.sendPhoto('6478320664', userData.photoId, {
-        caption: adminMessage,
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: 'Accept', callback_data: 'accept_' + userId }],
-                [{ text: 'Decline', callback_data: 'decline_' + userId }]
-            ]
-        }
-    });
-
-    ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
-    return sentMessage;
 // Separate functions to modularize the code and improve readability
 
 // Function to handle transaction hash submission
