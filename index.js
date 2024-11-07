@@ -1,5 +1,6 @@
 // Import necessary librarie
 const { Telegraf } = require('telegraf');
+const session = require('telegraf/session');
 const admin = require('firebase-admin');
 
 
