@@ -156,6 +156,7 @@ bot.action('balance', async (ctx) => {
 
 // Handle back to menu request
 bot.action('back_to_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
     // Delete the balance message if it exists
     if (reverse[userId] && reverse[userId].balanceMessageId) {
         await ctx.deleteMessage(reverse[userId].balanceMessageId);
