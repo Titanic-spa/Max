@@ -138,7 +138,7 @@ bot.action('balance', async (ctx) => {
 
     // Delete the main menu message if it exists
     if (reverse[userId] && reverse[userId].mainMenuMessageId) {
-         await ctx.deleteMessage(reverse[userId].mainMenuMessageId;
+         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
 
     // Send the balance message
