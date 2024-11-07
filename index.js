@@ -135,6 +135,11 @@ bot.action('balance', async (ctx) => {
         responseMessage = "❌You need to be registered to check your balance🚫.";
     }
 
+    // Delete the main menu message if it exists
+    if (balanceDelete.mainMenuMessageId) {
+        await ctx.deleteMessage(balanceDelete.mainMenuMessageId);
+    }
+
     // Send the balance message
     const balanceMessage = await ctx.reply(responseMessage, {
         reply_markup: {
@@ -144,18 +149,13 @@ bot.action('balance', async (ctx) => {
         }
     });
 
-    // Delete the main menu message when balance is shown
-    if (balanceDelete.mainMenuMessageId) {
-        await ctx.deleteMessage(balanceDelete.mainMenuMessageId);
-    }
-
-    // Store the balance message ID for later deletion when back button is clicked
+    // Store the balance message ID for later deletion
     balanceDelete.balanceMessageId = balanceMessage.message_id;
 });
 
 // Handle back to menu request
 bot.action('back_to_menu', async (ctx) => {
-    // Delete the balance message
+    // Delete the balance message if it exists
     if (balanceDelete.balanceMessageId) {
         await ctx.deleteMessage(balanceDelete.balanceMessageId);
     }
@@ -165,7 +165,7 @@ bot.action('back_to_menu', async (ctx) => {
     const userData = await getUserData(userId);
 
     if (userData && userData.paymentStatus === 'Registered') {
-        await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -178,6 +178,9 @@ bot.action('back_to_menu', async (ctx) => {
                 ]
             }
         });
+
+        // Update the stored message ID for the main menu
+        balanceDelete.mainMenuMessageId = mainMenuMessage.message_id;
     }
 });
  // Handle "make_announcement" button press
