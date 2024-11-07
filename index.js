@@ -151,7 +151,7 @@ bot.action('balance', async (ctx) => {
     });
 
     // Store the balance message ID for later deletion
-    reverse[userId].balanceMessage = balanceMessage.message_id;
+    reverse[userId].balanceMessageId = balanceMessage.message_id;
 });
 
 // Handle back to menu request
