@@ -75,7 +75,7 @@ bot.command('me',async (ctx) => {
     }
 });
 // Temporary object to store message IDs for deleting later
-const balanceDelete = {};
+const reverse = {};
 
 // Handle the start command and show the main menu
 bot.start(async (ctx) => {
@@ -103,7 +103,8 @@ bot.start(async (ctx) => {
         });
 
         // Store the main menu message ID for deleting later
-        balanceDelete.mainMenuMessageId = mainMenuMessage.message_id;
+        reverse[userId]
+        {mainMenuMessageId : mainMenuMessage.message_id};
     } else {
         // New or unregistered user
         if (referrerId && !userData) {
@@ -136,8 +137,8 @@ bot.action('balance', async (ctx) => {
     }
 
     // Delete the main menu message if it exists
-    if (balanceDelete.mainMenuMessageId) {
-        await ctx.deleteMessage(balanceDelete.mainMenuMessageId);
+    if (reverse[userId] && reverse[userId].mainMenuMessageId) {
+         await ctx.deleteMessage(reverse[userId].mainMenuMessageId;
     }
 
     // Send the balance message
@@ -150,14 +151,14 @@ bot.action('balance', async (ctx) => {
     });
 
     // Store the balance message ID for later deletion
-    balanceDelete.balanceMessageId = balanceMessage.message_id;
+    reverse[userId].balanceMessage = balanceMessage.message_id;
 });
 
 // Handle back to menu request
 bot.action('back_to_menu', async (ctx) => {
     // Delete the balance message if it exists
-    if (balanceDelete.balanceMessageId) {
-        await ctx.deleteMessage(balanceDelete.balanceMessageId);
+    if (reverse[userId] && reverse[userId].balanceMessageId) {
+        await ctx.deleteMessage(reverse[userId].balanceMessageId);
     }
 
     // Re-send the main menu
@@ -180,7 +181,7 @@ bot.action('back_to_menu', async (ctx) => {
         });
 
         // Update the stored message ID for the main menu
-        balanceDelete.mainMenuMessageId = mainMenuMessage.message_id;
+       reverse[userId].mainMenuMessage= mainMenuMessage.message_id;
     }
 });
  // Handle "make_announcement" button press
