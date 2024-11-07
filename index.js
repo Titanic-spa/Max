@@ -312,9 +312,9 @@ async function handleCryptoPackageSelection(ctx, userId) {
     ctx.reply("Choose withdrawal package 📦:", {
         reply_markup: {
             inline_keyboard: [
-                [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_5000_${userId}` }],
-                [{ text: '10,000 Points - 5 USDT', callback_data: `crypto_package_10000_${userId}` }],
-                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_15000_${userId}` }]
+                [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_2.5_${userId}` }],
+                [{ text: '10,000 Points - 5 USDT', callback_data: `crypto_package_5_${userId}` }],
+                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_7.5_${userId}` }]
             ]
         }
     });
