@@ -485,52 +485,59 @@ bot.on('photo', async (ctx) => {
     ctx.reply("📝Submit your Bank Name or Transaction Hash if it was Usdt you sent.");
 });
 
-// Separate text handler for transaction hash/name submission
-bot.on('text', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const userData = await getUserData(userId);
-    const step = taskData[userId] && taskData[userId].step;
-    const adminId = ctx.from.id.toString();
+// Separate functions to modularize the code and improve readability
 
-    // Check if the bot is expecting a transaction hash
-    if (userData && userData.expecting === 'transaction_hash') {
-        userData.tnxHash = ctx.message.text;
-        userData.expecting = null; // Clear the flag after receiving the transaction hash
+// Function to handle transaction hash submission
+async function handleTransactionHash(ctx, userId, userData) {
+    userData.tnxHash = ctx.message.text;
+    userData.expecting = null;
+    await setUserData(userId, userData);
 
-        // Send subscription request to admin with accept/decline options
-const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
-const sentMessage = await ctx.telegram.sendPhoto('6478320664', userData.photoId, {
-    caption: adminMessage,
-    reply_markup: {
-        inline_keyboard: [
-            [{ text: 'Accept', callback_data: 'accept_' + userId }],
-            [{ text: 'Decline', callback_data: 'decline_' + userId }]
-        ]
-    }
-});
+    const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
+    const sentMessage = await ctx.telegram.sendPhoto('6478320664', userData.photoId, {
+        caption: adminMessage,
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: 'Accept', callback_data: 'accept_' + userId }],
+                [{ text: 'Decline', callback_data: 'decline_' + userId }]
+            ]
+        }
+    });
 
-ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
-await setUserData(userId, userData);
+    ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
+    return sentMessage;
+}
 
-// Handle admin accept/decline actions
-bot.action(/accept_(\d+)/, async (ctx) => {
-    const userId = ctx.match[1];
+// Function to handle bank details submission
+async function handleBankDetails(ctx, userId, userData) {
+    userData.bankDetails = ctx.message.text;
+    userData.expecting = null;
+    await setUserData(userId, userData);
+    await handleBankPackageSelection(ctx, userId);
+}
+
+// Function to handle USDT address submission
+async function handleUSDTAddress(ctx, userId, userData) {
+    userData.usdtAddress = ctx.message.text;
+    userData.expecting = null;
+    await setUserData(userId, userData);
+    await handleCryptoPackageSelection(ctx, userId);
+}
+
+// Function to handle admin accept action
+async function handleAdminAccept(ctx, userId) {
     await setUserData(userId, { paymentStatus: 'Registered' });
 
-    // Retrieve user data and update referrer balance if applicable
     const userData = await getUserData(userId);
-
     if (userData.referrer) {
         const referrerData = await getUserData(userData.referrer);
         const updatedBalance = (referrerData.balance || 0) + 150;
         await updateUserBalance(userData.referrer, updatedBalance);
 
-        // Notify the referrer
         await ctx.telegram.sendMessage(userData.referrer, "🎉 Your friend has completed registration! You earned 150 points!");
     }
 
-    // Notify the user of confirmed registration
-    await ctx.telegram.sendMessage(userId, "💁Welcome! Your subscription has been confirmed🎉\nHere you are open to many possibilities.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel👇: https://t.me/cryptomax05\n\nAnd chat group🙂‍↔️: https://t.me/CryptoMAXDiscusson", {
+    await ctx.telegram.sendMessage(userId, "💁Welcome! Your subscription has been confirmed🎉 ...", {
         reply_markup: {
             inline_keyboard: [
                 [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -543,82 +550,71 @@ bot.action(/accept_(\d+)/, async (ctx) => {
             ]
         }
     });
+}
 
-    // Delete the original subscription message in the admin's chat
-    await ctx.deleteMessage(sentMessage.message_id);
-});
-
-// Handle admin decline
-bot.action(/decline_(\d+)/, async (ctx) => {
-    const userId = ctx.match[1];
+// Function to handle admin decline action
+async function handleAdminDecline(ctx, userId) {
     await setUserData(userId, { paymentStatus: 'Declined' });
-
-    // Notify the user of declined payment
     await ctx.telegram.sendMessage(userId, "😭😭Your payment has been declined. Please make sure to provide the correct details or contact support for assistance🥹.");
+}
 
-    // Delete the original subscription message in the admin's chat
-    await ctx.deleteMessage(sentMessage.message_id);
-});
-    }
-    // If expecting bank details or USDT address for withdrawal
-    else if (userData && userData.expecting === 'bank_details') {
-        userData.bankDetails = ctx.message.text;
-        userData.expecting = null; // Clear the flag after receiving bank details
-        await setUserData(userId, userData);
-        await handleBankPackageSelection(ctx, userId); // Proceed to package selection
-} else if (userData && userData.expecting === 'usdt_address') {
-        userData.usdtAddress = ctx.message.text;
-        userData.expecting = null; // Clear the flag after receiving USDT address
-        await setUserData(userId, userData);
-        await handleCryptoPackageSelection(ctx, userId); // Proceed to package selection
-    // Check if the user is the admin
-} else if (step === 'name') {
-    taskData[userId].name = ctx.message.text;
-    ctx.reply(`Task name set to: ${ctx.message.text}`);
-} else if (step === 'description') {
-    taskData[userId].description = ctx.message.text;
-    ctx.reply(`Task description set to: ${ctx.message.text}`);
+// Function to handle admin announcement
+async function handleAdminAnnouncement(ctx, announcementMessage) {
+    const usersSnapshot = await db.collection('users').get();
+    await Promise.all(usersSnapshot.docs.map(async (doc) => {
+        const userId = doc.id;
+        try {
+            await bot.telegram.sendMessage(userId, `📢 Announcement:\n\n${announcementMessage}`);
+        } catch (error) {
+            console.error(`Failed to send message to user ${userId}:`, error);
+        }
+    }));
+    ctx.reply("✅ Announcement sent to all users.");
+}
+
+// Main text handler
+bot.on('text', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userData = await getUserData(userId);
+    const step = taskData[userId] && taskData[userId].step;
+
+    if (userData && userData.expecting === 'transaction_hash') {
+        await handleTransactionHash(ctx, userId, userData);
+    } else if (userData && userData.expecting === 'bank_details') {
+        await handleBankDetails(ctx, userId, userData);
+    } else if (userData && userData.expecting === 'usdt_address') {
+        await handleUSDTAddress(ctx, userId, userData);
+    } else if (step === 'name') {
+        taskData[userId].name = ctx.message.text;
+        ctx.reply(`Task name set to: ${ctx.message.text}`);
+    } else if (step === 'description') {
+        taskData[userId].description = ctx.message.text;
+        ctx.reply(`Task description set to: ${ctx.message.text}`);
     } else if (step === 'points') {
         taskData[userId].points = parseInt(ctx.message.text, 10);
         ctx.reply(`Task points set to: ${ctx.message.text}`);
-
-
-    }    // Check if the user is the admin
-  else  if (userId === '6478320664') { // Replace with the actual admin ID
+    } else if (userId === '6478320664') {
         const adminData = await getUserData(userId);
-
-        // If the admin is expecting to input a new balance
         if (adminData && adminData.expecting === 'balance') {
-            // Handle the balance edit
             await editBalance(ctx);
+        } else if (adminData && adminData.expecting === 'announcement') {
+            await handleAdminAnnouncement(ctx, ctx.message.text);
+            adminData.expecting = null;
+            await setUserData(userId, adminData);
         }
-
-} else if (ctx.from.id.toString() === '6478320664') { // Check if the user is the admin
-    let adminData = await getUserData(ctx.from.id.toString());
-
-    // Check if the admin is expecting to send an announcement
-    if (adminData && adminData.expecting === 'announcement') {
-const announcementMessage = ctx.message.text;
-
-// Fetch all users from Firestore and send the message to each user
-const usersSnapshot = await db.collection('users').get();
-
-await Promise.all(usersSnapshot.docs.map(async (doc) => {
-    const userId = doc.id; // Use the document ID as the user ID
-
-    try {
-        await bot.telegram.sendMessage(userId, `📢 Announcement:\n\n${announcementMessage}`);
-    } catch (error) {
-        console.error(`Failed to send message to user ${userId}:`, error);
     }
-       // Clear the 'expecting' status for the admin
-        adminData.expecting = null;
-        await setUserData(ctx.from.id.toString(), adminData); // Update admin data in Firestore
+});
 
-        ctx.reply("✅ Announcement sent to all users.");
-    }
-  }
-  });
+// Admin accept and decline actions
+bot.action(/accept_(\d+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    await handleAdminAccept(ctx, userId);
+});
+
+bot.action(/decline_(\d+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    await handleAdminDecline(ctx, userId);
+});
 
 // Handle the log_users callback
 bot.action('log_users', async (ctx) => {
