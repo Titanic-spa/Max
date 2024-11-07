@@ -163,7 +163,6 @@ bot.action('back_to_menu', async (ctx) => {
     }
 
     // Re-send the main menu
-    const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
 
     if (userData && userData.paymentStatus === 'Registered') {
