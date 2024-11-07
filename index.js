@@ -166,7 +166,7 @@ bot.action('balance', async (ctx) => {
 
 // Handle support command
 bot.action('support', (ctx) => {
-    const supportMessage = "*🚀 If you would like your very own task to be posted, then contact this number:* \n\n" +
+    const supportMessage = "*🚀 If you would like your very own task to be posted, or make a conplain or need assistance, then contact this number:* \n\n" +
         "`2349013586984`\n\n" +
         "_Do not contact this number for any other reason or else you will be blocked._";
     
@@ -232,9 +232,9 @@ return ctx.reply(
     "🔄 Please hang tight! Withdrawals are temporarily inaccessible. This may be due to maintenance or high demand. " +
     "We're working hard to bring this feature back as soon as possible.\n\n" +
     "💡 Stay updated by checking our official channel for the latest announcements and info. ⭐\n\n" +
-    "Thank you for your patience and understanding! 🙏"
+    "Thank you for your patience and understanding! 🙏",
+    { parse_mode: 'MarkdownV2' }
 );
-    }
 
     // If withdrawals are not paused, proceed with withdrawal options
     const sentMessage = await ctx.reply("Choose your withdrawal option:", {
