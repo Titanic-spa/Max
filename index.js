@@ -506,6 +506,27 @@ async function handleTransactionHash(ctx, userId, userData) {
 
     ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
     return sentMessage;
+// Separate functions to modularize the code and improve readability
+
+// Function to handle transaction hash submission
+async function handleTransactionHash(ctx, userId, userData) {
+    userData.tnxHash = ctx.message.text;
+    userData.expecting = null;
+    await setUserData(userId, userData);
+
+    const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
+    const sentMessage = await ctx.telegram.sendPhoto('6478320664', userData.photoId, {
+        caption: adminMessage,
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: 'Accept', callback_data: 'accept_' + userId }],
+                [{ text: 'Decline', callback_data: 'decline_' + userId }]
+            ]
+        }
+    });
+
+    ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
+    return sentMessage;
 }
 
 // Function to handle bank details submission
@@ -591,8 +612,13 @@ bot.on('text', async (ctx) => {
         taskData[userId].description = ctx.message.text;
         ctx.reply(`Task description set to: ${ctx.message.text}`);
     } else if (step === 'points') {
-        taskData[userId].points = parseInt(ctx.message.text, 10);
-        ctx.reply(`Task points set to: ${ctx.message.text}`);
+        const points = parseInt(ctx.message.text, 10);
+        if (!isNaN(points)) {
+            taskData[userId].points = points;
+            ctx.reply(`Task points set to: ${points}`);
+        } else {
+            ctx.reply("❌ Invalid input. Please enter a valid number for points.");
+        }
     } else if (userId === '6478320664') {
         const adminData = await getUserData(userId);
         if (adminData && adminData.expecting === 'balance') {
@@ -616,6 +642,63 @@ bot.action(/decline_(\d+)/, async (ctx) => {
     await handleAdminDecline(ctx, userId);
 });
 
+// Async function to handle balance editing by admin
+async function editBalance(ctx) {
+    const adminId = '6478320664';
+    const userId = ctx.from.id.toString();
+
+    if (userId === adminId) {
+        const adminData = await getUserData(adminId);
+        if (adminData && adminData.expecting === 'balance') {
+            const targetUserId = adminData.targetUserId;
+            const newBalance = parseFloat(ctx.message.text);
+
+            if (!isNaN(newBalance)) {
+                const targetUserData = await getUserData(targetUserId);
+
+                if (targetUserData) {
+                    targetUserData.balance = newBalance;
+                    await setUserData(targetUserId, targetUserData);
+
+                    ctx.reply(`✅ Balance for ${targetUserData.name} has been updated to ${newBalance} points.`);
+
+                    adminData.expecting = null;
+                    await setUserData(adminId, adminData);
+                } else {
+                    ctx.reply("❌ User not found.");
+                }
+            } else {
+                ctx.reply("❌ Invalid input. Please enter a valid number.");
+            }
+        }
+    } else {
+        ctx.reply("❌ You are not authorized to edit a balance.");
+    }
+}
+
+// Handle the callback for editing a user's balance (admin only)
+bot.action(/edit_balance_(.+)/, async (ctx) => {
+    const adminId = '6478320664';
+    const userId = ctx.from.id.toString();
+
+    if (userId === adminId) {
+        const targetUserId = ctx.match[1];
+        const targetUserData = await getUserData(targetUserId);
+
+        if (targetUserData) {
+            ctx.reply(`Please enter the new balance for ${targetUserData.name}:`);
+
+            const adminData = await getUserData(adminId);
+            adminData.expecting = 'balance';
+            adminData.targetUserId = targetUserId;
+            await setUserData(adminId, adminData);
+        } else {
+            ctx.reply("❌ User not found.");
+        }
+    } else {
+        ctx.reply("❌ You are not authorized to edit a balance.");
+    }
+});
 // Handle the log_users callback
 bot.action('log_users', async (ctx) => {
     const userId = ctx.from.id.toString();
