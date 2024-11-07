@@ -611,8 +611,7 @@ await Promise.all(usersSnapshot.docs.map(async (doc) => {
     } catch (error) {
         console.error(`Failed to send message to user ${userId}:`, error);
     }
-}));
-        // Clear the 'expecting' status for the admin
+       // Clear the 'expecting' status for the admin
         adminData.expecting = null;
         await setUserData(ctx.from.id.toString(), adminData); // Update admin data in Firestore
 
