@@ -179,9 +179,16 @@ bot.action('back_to_menu', async (ctx) => {
                 ]
             }
         });
+console.log("User ID:", userId);
+console.log("reverse[userId] before setting:", reverse[userId]);
 
-        // Update the stored main menu message ID for this user
-        reverse[userId].mainMenuMessageId = mainMenuMessage.message_id;
+if (!reverse[userId]) {
+  reverse[userId] = {};
+}
+
+reverse[userId].mainMenuMessageId = mainMenuMessage.message_id;
+
+console.log("reverse[userId] after setting:", reverse[userId]);
     }
 });
  // Handle "make_announcement" button press
