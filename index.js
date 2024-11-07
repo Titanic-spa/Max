@@ -1,6 +1,5 @@
 // Import necessary librarie
 const { Telegraf } = require('telegraf');
-const session = require('telegraf/session');
 const admin = require('firebase-admin');
 
 
@@ -75,6 +74,10 @@ bot.command('me',async (ctx) => {
         ctx.reply("❌🚫You are not authorized to use this command❌🙅.");
     }
 });
+// Temporary object to store message IDs for deleting later
+const balanceDelete = {};
+
+// Handle the start command and show the main menu
 bot.start(async (ctx) => {
     const userId = ctx.from.id.toString();
     const args = ctx.message.text.split(" ");
@@ -99,19 +102,17 @@ bot.start(async (ctx) => {
             }
         });
 
-        // Save the message ID to delete later when needed
-        ctx.session.mainMenuMessageId = mainMenuMessage.message_id;
+        // Store the main menu message ID for deleting later
+        balanceDelete.mainMenuMessageId = mainMenuMessage.message_id;
     } else {
         // New or unregistered user
-        // If they came through a referral link and are not registered, save the referrer
         if (referrerId && !userData) {
             await registerNewUser(userId, { referrer: referrerId, paymentStatus: 'Unregistered', balance: 0 });
         } else if (!userData) {
-            // No referrer, just register the user without referral data
             await registerNewUser(userId, { paymentStatus: 'Unregistered', balance: 0 });
         }
 
-        // Prompt user to complete registration (admin will need to approve)
+        // Prompt user to complete registration
         ctx.reply("🌝Here's a bot that not only gives cash for simple tasks performed but also gives crypto and crypto updates.\n👇Click to Continue", {
             reply_markup: {
                 inline_keyboard: [[{ text: 'Continue', callback_data: 'continue' }]]
@@ -134,45 +135,37 @@ bot.action('balance', async (ctx) => {
         responseMessage = "❌You need to be registered to check your balance🚫.";
     }
 
-    // Delete the main menu message
-    if (ctx.session.mainMenuMessageId) {
-        try {
-            await ctx.deleteMessage(ctx.session.mainMenuMessageId);
-        } catch (e) {
-            console.log("Failed to delete main menu message", e);
-        }
-    }
-
-    // Send the balance message with a 'Back' button
-    const sentMessage = await ctx.reply(responseMessage, {
+    // Send the balance message
+    const balanceMessage = await ctx.reply(responseMessage, {
         reply_markup: {
             inline_keyboard: [
-                [{ text: 'Back', callback_data: 'back_to_menu' }] // Back button below the balance message
+                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
             ]
         }
     });
 
-    // Save the balance message ID to delete later when needed
-    ctx.session.balanceMessageId = sentMessage.message_id;
+    // Delete the main menu message when balance is shown
+    if (balanceDelete.mainMenuMessageId) {
+        await ctx.deleteMessage(balanceDelete.mainMenuMessageId);
+    }
+
+    // Store the balance message ID for later deletion when back button is clicked
+    balanceDelete.balanceMessageId = balanceMessage.message_id;
 });
 
-// Handle 'Back' button to return to the main menu
+// Handle back to menu request
 bot.action('back_to_menu', async (ctx) => {
+    // Delete the balance message
+    if (balanceDelete.balanceMessageId) {
+        await ctx.deleteMessage(balanceDelete.balanceMessageId);
+    }
+
+    // Re-send the main menu
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
 
-    // Delete the balance message
-    if (ctx.session.balanceMessageId) {
-        try {
-            await ctx.deleteMessage(ctx.session.balanceMessageId);
-        } catch (e) {
-            console.log("Failed to delete balance message", e);
-        }
-    }
-
-    // Show the main menu again
     if (userData && userData.paymentStatus === 'Registered') {
-        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+        await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -185,12 +178,9 @@ bot.action('back_to_menu', async (ctx) => {
                 ]
             }
         });
-
-        // Save the message ID to delete later when needed
-        ctx.session.mainMenuMessageId = mainMenuMessage.message_id;
     }
 });
-// Handle "make_announcement" button press
+ // Handle "make_announcement" button press
 bot.action('make_announcement', async (ctx) => {
     const userId = ctx.from.id.toString();
     if (userId === '6478320664') { // Confirm it's the admin
