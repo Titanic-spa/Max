@@ -74,7 +74,7 @@ bot.command('me',async (ctx) => {
         ctx.reply("❌🚫You are not authorized to use this command❌🙅.");
     }
 });
-// Temporary object to store message IDs for deleting later
+// Temporary object to store message IDs for each user to delete later
 const reverse = {};
 
 // Handle the start command and show the main menu
@@ -102,9 +102,8 @@ bot.start(async (ctx) => {
             }
         });
 
-        // Store the main menu message ID for deleting later
-        reverse[userId]
-        {mainMenuMessageId : mainMenuMessage.message_id};
+        // Store the main menu message ID for deleting later for this user
+        reverse[userId] = { mainMenuMessageId: mainMenuMessage.message_id };
     } else {
         // New or unregistered user
         if (referrerId && !userData) {
@@ -136,9 +135,9 @@ bot.action('balance', async (ctx) => {
         responseMessage = "❌You need to be registered to check your balance🚫.";
     }
 
-    // Delete the main menu message if it exists
+    // Delete the main menu message if it exists for this user
     if (reverse[userId] && reverse[userId].mainMenuMessageId) {
-         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
+        await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
 
     // Send the balance message
@@ -150,14 +149,15 @@ bot.action('balance', async (ctx) => {
         }
     });
 
-    // Store the balance message ID for later deletion
+    // Store the balance message ID for this user
     reverse[userId].balanceMessageId = balanceMessage.message_id;
 });
 
 // Handle back to menu request
 bot.action('back_to_menu', async (ctx) => {
     const userId = ctx.from.id.toString();
-    // Delete the balance message if it exists
+
+    // Delete the balance message if it exists for this user
     if (reverse[userId] && reverse[userId].balanceMessageId) {
         await ctx.deleteMessage(reverse[userId].balanceMessageId);
     }
@@ -180,8 +180,8 @@ bot.action('back_to_menu', async (ctx) => {
             }
         });
 
-        // Update the stored message ID for the main menu
-       reverse[userId].mainMenuMessage= mainMenuMessage.message_id;
+        // Update the stored main menu message ID for this user
+        reverse[userId].mainMenuMessageId = mainMenuMessage.message_id;
     }
 });
  // Handle "make_announcement" button press
