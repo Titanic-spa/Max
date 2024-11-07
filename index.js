@@ -573,41 +573,73 @@ async function handleAdminAnnouncement(ctx, announcementMessage) {
     ctx.reply("✅ Announcement sent to all users.");
 }
 
-// Main text handler
+// Main text handler with switch-case to handle different user actions
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
-    const step = taskData[userId] && taskData[userId].step;
 
-    if (userData && userData.expecting === 'transaction_hash') {
-        await handleTransactionHash(ctx, userId, userData);
-    } else if (userData && userData.expecting === 'bank_details') {
-        await handleBankDetails(ctx, userId, userData);
-    } else if (userData && userData.expecting === 'usdt_address') {
-        await handleUSDTAddress(ctx, userId, userData);
-    } else if (step === 'name') {
-        taskData[userId].name = ctx.message.text;
-        ctx.reply(`Task name set to: ${ctx.message.text}`);
-    } else if (step === 'description') {
-        taskData[userId].description = ctx.message.text;
-        ctx.reply(`Task description set to: ${ctx.message.text}`);
-    } else if (step === 'points') {
-        const points = parseInt(ctx.message.text, 10);
-        if (!isNaN(points)) {
-            taskData[userId].points = points;
-            ctx.reply(`Task points set to: ${points}`);
-        } else {
-            ctx.reply("❌ Invalid input. Please enter a valid number for points.");
-        }
-    } else if (userId === '6478320664') {
-        const adminData = await getUserData(userId);
-        if (adminData && adminData.expecting === 'balance') {
-            await editBalance(ctx);
-        } else if (adminData && adminData.expecting === 'announcement') {
-            await handleAdminAnnouncement(ctx, ctx.message.text);
-            adminData.expecting = null;
-            await setUserData(userId, adminData);
-        }
+    if (!userData) {
+        ctx.reply("User data not found. Please register first.");
+        return;
+    }
+
+    const currentStep = userData.expecting || (taskData[userId] && taskData[userId].step);
+
+    switch (currentStep) {
+        case 'transaction_hash':
+            await handleTransactionHash(ctx, userId, userData);
+            break;
+        
+        case 'bank_details':
+            await handleBankDetails(ctx, userId, userData);
+            break;
+
+        case 'usdt_address':
+            await handleUSDTAddress(ctx, userId, userData);
+            break;
+
+        case 'name':
+            if (!taskData[userId]) taskData[userId] = {};
+            taskData[userId].name = ctx.message.text;
+            taskData[userId].step = 'description'; // Move to the next step
+            ctx.reply(`Task name set to: ${ctx.message.text}\n\nPlease enter the task description:`);
+            break;
+
+        case 'description':
+            taskData[userId].description = ctx.message.text;
+            taskData[userId].step = 'points'; // Move to the next step
+            ctx.reply(`Task description set to: ${ctx.message.text}\n\nPlease enter the task points:`);
+            break;
+
+        case 'points':
+            const points = parseInt(ctx.message.text, 10);
+            if (isNaN(points)) {
+                ctx.reply("❌ Invalid input. Please enter a valid number for points.");
+            } else {
+                taskData[userId].points = points;
+                delete taskData[userId].step; // Clear step to indicate task is complete
+                ctx.reply(`Task points set to: ${points}\n\nTask setup is complete.`);
+                // Save the task or process further if needed
+            }
+            break;
+
+        default:
+            // Handling admin actions
+            if (userId === '6478320664') {
+                const adminData = await getUserData(userId);
+                
+                if (adminData && adminData.expecting === 'balance') {
+                    await editBalance(ctx);
+                } else if (adminData && adminData.expecting === 'announcement') {
+                    await handleAdminAnnouncement(ctx, ctx.message.text);
+                    adminData.expecting = null;
+                    await setUserData(userId, adminData);
+                }
+            } else {
+                // General response for unrecognized messages
+                ctx.reply("Sorry, I didn't understand that. Please follow the instructions or use a command.");
+            }
+            break;
     }
 });
 
