@@ -226,7 +226,7 @@ bot.action('friends', async (ctx) => {
     const referralMessage = await ctx.reply(responseMessage, {
         reply_markup: {
             inline_keyboard: [
-                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
+                [{ text: '⬅️ Back to Menu', callback_data: 'back' }]
             ]
         }
     });
@@ -238,7 +238,7 @@ bot.action('friends', async (ctx) => {
     reverse[userId].referralMessageId = referralMessage.message_id;
 });
 // Handle back to menu request
-bot.action('back_to_menu', async (ctx) => {
+bot.action('back', async (ctx) => {
     const userId = ctx.from.id.toString();
 
     // Delete the previous referral message if it exists for this user
