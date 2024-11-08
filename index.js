@@ -135,7 +135,7 @@ bot.action('balance', async (ctx) => {
         responseMessage = "❌You need to be registered to check your balance🚫.";
     }
 
-    // Delete the main menu message if it exists for this user
+    // delete the main menu message if it exists for this user
     if (reverse[userId] && reverse[userId].mainMenuMessageId) {
         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
@@ -161,7 +161,11 @@ bot.action('back_to_menu', async (ctx) => {
     if (reverse[userId] && reverse[userId].balanceMessageId) {
         await ctx.deleteMessage(reverse[userId].balanceMessageId);
     }
-
+    
+    // Delete the previous referral message if it exists for this user
+ else if (reverse[userId] && reverse[userId].referralMessageId) {
+        await ctx.deleteMessage(reverse[userId].referralMessageId);
+    }
     // Re-send the main menu
     const userData = await getUserData(userId);
 
@@ -211,13 +215,32 @@ bot.action('friends', async (ctx) => {
     // Generate referral link
     const referralLink = `https://t.me/Cryptomax1101Bot?start=${userId}`;
 
+    // Delete the main menu message if it exists for this user
+    if (reverse[userId] && reverse[userId].mainMenuMessageId) {
+        await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
+    }
+
     // Get invited friends count
     const invitedFriendsCount = await countInvitedFriends(userId);
 
-    ctx.reply(`📢Earn 150 points from each friend invited.\nShare your referral link:\n🖇️ ${referralLink}\n\n👥 Friends Invited: ${invitedFriendsCount}`);
+    // Prepare the referral message
+    const responseMessage = `📢Earn 150 points from each friend invited.\nShare your referral link:\n🖇️ ${referralLink}\n\n👥 Friends Invited: ${invitedFriendsCount}`;
+
+    // Send the referral message with a 'Back to Menu' button
+    const referralMessage = await ctx.reply(responseMessage, {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
+            ]
+        }
+    });
+
+    // Store the referral message ID for this user
+    if (!reverse[userId]) {
+        reverse[userId] = {};
+    }
+    reverse[userId].referralMessageId = referralMessage.message_id;
 });
-
-
 
 // Handle support command
 bot.action('support', (ctx) => {
