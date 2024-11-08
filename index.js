@@ -1003,6 +1003,16 @@ bot.action('log_users', async (ctx) => {
         ctx.reply("❌🚫 You are not authorized to use this command.");
     }
 });
+// Function to send message to specific user
+async function sendMessageToUser(ctx, targetUserId, message) {
+    try {
+        await ctx.telegram.sendMessage(targetUserId, `📩 Message from Admin:\n\n${message}`);
+        ctx.reply("✅ Message sent successfully.");
+    } catch (error) {
+        console.error("Failed to send message:", error);
+        ctx.reply("❌ Failed to send the message. The user may have blocked the bot or an error occurred.");
+    }
+}
 
 // Handle view user action
 bot.action(/view_user_(.+)/, async (ctx) => {
