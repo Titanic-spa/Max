@@ -544,7 +544,8 @@ bot.action('crypto', async (ctx) => {
 
 // Handle bank package selection
 async function handleBankPackageSelection(ctx, userId) {
-    ctx.reply("Choose withdrawal package 📦:", {
+    ctx.reply("Select your withdrawal package 📦:\n\nIf you made a mistake with your previous Bank details, you can just update it here. Otherwise, simply proceed with your action!"
+, {
         reply_markup: {
             inline_keyboard: [
                 [{ text: '5,000 Points - 5,000 Naira', callback_data: `bank_package_5000_${userId}` }],
@@ -557,7 +558,7 @@ async function handleBankPackageSelection(ctx, userId) {
 
 // Handle crypto package selection
 async function handleCryptoPackageSelection(ctx, userId) {
-    ctx.reply("Choose withdrawal package 📦:", {
+    ctx.reply("Select your withdrawal package 📦:\n\nIf you made a mistake with your previous address, you can update it here. Otherwise, simply proceed with your action!", {
         reply_markup: {
             inline_keyboard: [
                 [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_2.5_${userId}` }],
