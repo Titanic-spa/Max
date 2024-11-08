@@ -305,7 +305,7 @@ bot.action('support', async (ctx) => {
         parse_mode: "Markdown",
         reply_markup: {
             inline_keyboard: [
-                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
+                [{ text: '⬅️ Back to Menu', callback_data: 'back_sup' }]
             ]
         }
     });
@@ -315,6 +315,53 @@ bot.action('support', async (ctx) => {
         reverse[userId] = {};
     }
     reverse[userId].supportMessageId = sentSupportMessage.message_id;
+});
+//for support 
+bot.action('back_sup', async (ctx) => {
+    const userId = ctx.from.id.toString();
+
+    // Ensure reverse[userId] is defined
+    if (!reverse[userId]) {
+        reverse[userId] = {};
+    }
+
+    // Delete the previous referral message if it exists
+    if (reverse[userId].supportMessageId) {
+        try {
+            await ctx.deleteMessage(reverse[userId].supportMessageId);
+            console.log("Deleted support message for user:", userId);
+        } catch (error) {
+            console.error("Error deleting support message:", error);
+        }
+    }
+
+    // Re-send the main menu
+    const userData = await getUserData(userId);
+
+    if (userData && userData.paymentStatus === 'Registered') {
+        const mainMenuMessage = await ctx.reply(
+            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson",
+            {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🏦Balance', callback_data: 'balance' }],
+                        [{ text: '👷Tasks', callback_data: 'tasks' }],
+                        [{ text: '💁Support', callback_data: 'support' }],
+                        [{ text: '💑Friends', callback_data: 'friends' }],
+                        [{ text: '🔄Withdrawal', callback_data: 'withdrawal' }],
+                        [{ text: '📈Top Earners', callback_data: 'top_earners' }],
+                        [{ text: '🎉Claim', callback_data: 'claim' }]
+                    ]
+                }
+            }
+        );
+
+        // Store the main menu message ID
+        reverse[userId].mainMenuMessageId = mainMenuMessage.message_id;
+
+        console.log("User ID:", userId);
+        console.log("reverse[userId] after setting:", reverse[userId]);
+    }
 });
 // Top earners definition
 // Top earners definition
