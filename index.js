@@ -161,8 +161,18 @@ bot.action('back_to_menu', async (ctx) => {
     if (reverse[userId] && reverse[userId].balanceMessageId) {
         await ctx.deleteMessage(reverse[userId].balanceMessageId);
     }
-    
-    
+    // Delete the previous referral message if it exists for this user
+    if (reverse[userId] && reverse[userId].referralMessageId) {
+        await ctx.deleteMessage(reverse[userId].referralMessageId);
+    }
+    // Delete the previous support message if it exists for this user
+    if (reverse[userId] && reverse[userId].supportMessageId) {
+        await ctx.deleteMessage(reverse[userId].supportMessageId);
+    }
+        // Delete the previous top earners message if it exists for this user
+    if (reverse[userId] && reverse[userId].topEarnersMessageId) {
+        await ctx.deleteMessage(reverse[userId].topEarnersMessageId);
+   }
     
     // Re-send the main menu
     const userData = await getUserData(userId);
@@ -218,10 +228,7 @@ bot.action('friends', async (ctx) => {
         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
 
-    // Delete the previous referral message if it exists for this user
-    if (reverse[userId] && reverse[userId].referralMessageId) {
-        await ctx.deleteMessage(reverse[userId].referralMessageId);
-           }
+    
     // Get invited friends count
     const invitedFriendsCount = await countInvitedFriends(userId);
 
@@ -258,11 +265,7 @@ bot.action('support', async (ctx) => {
     if (reverse[userId] && reverse[userId].mainMenuMessageId) {
         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
-    // Delete the previous support message if it exists for this user
-    if (reverse[userId] && reverse[userId].supportMessageId) {
-        await ctx.deleteMessage(reverse[userId].supportMessageId);
-  }
-
+    
     // Send the support message with a 'Back to Menu' button
     const sentSupportMessage = await ctx.reply(supportMessage, {
         parse_mode: "Markdown",
@@ -306,10 +309,7 @@ bot.action('top_earners', async (ctx) => {
     if (reverse[userId] && reverse[userId].mainMenuMessageId) {
         await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
     }
-    // Delete the previous top earners message if it exists for this user
-if (reverse[userId] && reverse[userId].topEarnersMessageId) {
-        await ctx.deleteMessage(reverse[userId].topEarnersMessageId);
-}
+
 
     // Send the top earners message with 'Back to Menu' button
     const sentMessage = await ctx.reply(responseMessage, {
