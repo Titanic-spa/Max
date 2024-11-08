@@ -821,7 +821,6 @@ async function handleAdminAnnouncement(ctx, announcementMessage) {
     }));
     ctx.reply("✅ Announcement sent to all users.");
 }
-
 // Main text handler with switch-case to handle different user actions
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -838,7 +837,7 @@ bot.on('text', async (ctx) => {
         case 'transaction_hash':
             await handleTransactionHash(ctx, userId, userData);
             break;
-        
+
         case 'bank_details':
             await handleBankDetails(ctx, userId, userData);
             break;
@@ -850,13 +849,13 @@ bot.on('text', async (ctx) => {
         case 'name':
             if (!taskData[userId]) taskData[userId] = {};
             taskData[userId].name = ctx.message.text;
-            taskData[userId].step = 'description'; // Move to the next step
+            taskData[userId].step = 'description';
             ctx.reply(`Task name set to: ${ctx.message.text}\n\nPlease enter the task description:`);
             break;
 
         case 'description':
             taskData[userId].description = ctx.message.text;
-            taskData[userId].step = 'points'; // Move to the next step
+            taskData[userId].step = 'points';
             ctx.reply(`Task description set to: ${ctx.message.text}\n\nPlease enter the task points:`);
             break;
 
@@ -866,9 +865,8 @@ bot.on('text', async (ctx) => {
                 ctx.reply("❌ Invalid input. Please enter a valid number for points.");
             } else {
                 taskData[userId].points = points;
-                delete taskData[userId].step; // Clear step to indicate task is complete
+                delete taskData[userId].step;
                 ctx.reply(`Task points set to: ${points}\n\nTask setup is complete.`);
-                // Save the task or process further if needed
             }
             break;
 
@@ -876,22 +874,25 @@ bot.on('text', async (ctx) => {
             // Handling admin actions
             if (userId === '6478320664') {
                 const adminData = await getUserData(userId);
-                
+
                 if (adminData && adminData.expecting === 'balance') {
                     await editBalance(ctx);
+                } else if (adminData && adminData.expecting.startsWith('send_message_')) {
+                    const targetUserId = adminData.expecting.split('_')[2];
+                    await sendMessageToUser(ctx, targetUserId, ctx.message.text);
+                    adminData.expecting = null;
+                    await setUserData(userId, adminData);
                 } else if (adminData && adminData.expecting === 'announcement') {
                     await handleAdminAnnouncement(ctx, ctx.message.text);
                     adminData.expecting = null;
                     await setUserData(userId, adminData);
                 }
             } else {
-                // General response for unrecognized messages
                 ctx.reply("Sorry, I didn't understand that. Please follow the instructions or use a command.");
             }
             break;
     }
 });
-
 // Admin accept and decline actions
 bot.action(/accept_(\d+)/, async (ctx) => {
     const userId = ctx.match[1];
@@ -958,6 +959,22 @@ bot.action(/edit_balance_(.+)/, async (ctx) => {
         }
     } else {
         ctx.reply("❌ You are not authorized to edit a balance.");
+    }
+});
+// Handle send message action
+bot.action(/send_message_(.+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    const adminId = ctx.from.id.toString();
+
+    // Check if the admin is performing the action
+    if (adminId === '6478320664') {
+        const adminData = await getUserData(adminId);
+        adminData.expecting = `send_message_${userId}`; // Set expecting field for specific user message
+        await setUserData(adminId, adminData);
+
+        ctx.reply(`📝 Please enter the message you want to send to user ID: ${userId}`);
+    } else {
+        ctx.reply("❌ You do not have permission to perform this action.");
     }
 });
 // Handle the log_users callback
