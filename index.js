@@ -470,7 +470,7 @@ bot.action('pause', (ctx) => {
     ctx.answerCbQuery(); // Close the button loading state
     ctx.reply(statusMessage);
 });
-
+const session ={}
 // Handle withdrawal action for users
 bot.action('withdrawal', async (ctx) => {
     if (withdrawalsPaused) {
