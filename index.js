@@ -161,20 +161,7 @@ bot.action('back_to_menu', async (ctx) => {
     if (reverse[userId] && reverse[userId].balanceMessageId) {
         await ctx.deleteMessage(reverse[userId].balanceMessageId);
     }
-    // Delete the previous referral message if it exists for this user
-    if (reverse[userId] && reverse[userId].referralMessageId) {
-        await ctx.deleteMessage(reverse[userId].referralMessageId);
-    }
-    // Delete the previous support message if it exists for this user
-    if (reverse[userId] && reverse[userId].supportMessageId) {
-        await ctx.deleteMessage(reverse[userId].supportMessageId);
-    }
-        // Delete the previous top earners message if it exists for this user
-    if (reverse[userId] && reverse[userId].topEarnersMessageId) {
-        await ctx.deleteMessage(reverse[userId].topEarnersMessageId);
-   }
-    
-    // Re-send the main menu
+// Re-send the main menu
     const userData = await getUserData(userId);
 
     if (userData && userData.paymentStatus === 'Registered') {
@@ -249,6 +236,44 @@ bot.action('friends', async (ctx) => {
         reverse[userId] = {};
     }
     reverse[userId].referralMessageId = referralMessage.message_id;
+});
+// Handle back to menu request
+bot.action('back_to_menu', async (ctx) => {
+    const userId = ctx.from.id.toString();
+
+    // Delete the previous referral message if it exists for this user
+    if (reverse[userId] && reverse[userId].referralMessageId) {
+        await ctx.deleteMessage(reverse[userId].referralMessageId);
+    }
+    
+// Re-send the main menu
+    const userData = await getUserData(userId);
+
+    if (userData && userData.paymentStatus === 'Registered') {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🏦Balance', callback_data: 'balance' }],
+                    [{ text: '👷Tasks', callback_data: 'tasks' }],
+                    [{ text: '💁Support', callback_data: 'support' }],
+                    [{ text: '💑Friends', callback_data: 'friends' }],
+                    [{ text: '🔄Withdrawal', callback_data: 'withdrawal' }],
+                    [{ text: '📈Top Earners', callback_data: 'top_earners' }],
+                    [{ text: '🎉Claim', callback_data: 'claim' }]
+                ]
+            }
+        });
+console.log("User ID:", userId);
+console.log("reverse[userId] before setting:", reverse[userId]);
+
+if (!reverse[userId]) {
+  reverse[userId] = {};
+}
+
+reverse[userId].mainMenuMessageId = mainMenuMessage.message_id;
+
+console.log("reverse[userId] after setting:", reverse[userId]);
+    }
 });
 
 // Handle support command
