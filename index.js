@@ -1,4 +1,4 @@
-// Import necessary librarie
+// Import necessary libraries
 const { Telegraf } = require('telegraf');
 const admin = require('firebase-admin');
 
@@ -1247,8 +1247,6 @@ bot.action('tasks_upload', async (ctx) => {
         reply_markup: {
             inline_keyboard: [
                 [{ text: 'Enter Task Name', callback_data: 'enter_task_name' }],
-                [{ text: 'Enter Task Description', callback_data: 'enter_task_description' }],
-                [{ text: 'Set Task Points', callback_data: 'set_task_points' }],
                 [{ text: 'Confirm Task', callback_data: 'confirm_task' }]
             ]
         }
