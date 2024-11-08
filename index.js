@@ -166,6 +166,14 @@ bot.action('back_to_menu', async (ctx) => {
  else if (reverse[userId] && reverse[userId].referralMessageId) {
         await ctx.deleteMessage(reverse[userId].referralMessageId);
     }
+    // Delete the previous support message if it exists for this user
+  else if (reverse[userId] && reverse[userId].supportMessageId) {
+        await ctx.deleteMessage(reverse[userId].supportMessageId);
+}
+    // Delete the previous top earners message if it exists for this user
+else if (reverse[userId] && reverse[userId].topEarnersMessageId) {
+        await ctx.deleteMessage(reverse[userId].topEarnersMessageId);
+    }
     // Re-send the main menu
     const userData = await getUserData(userId);
 
@@ -243,23 +251,45 @@ bot.action('friends', async (ctx) => {
 });
 
 // Handle support command
-bot.action('support', (ctx) => {
+// Handle support command
+bot.action('support', async (ctx) => {
+    const userId = ctx.from.id.toString();
+
+    // Support message content
     const supportMessage = "*🚀 If you would like your very own task to be posted, then contact this number:* \n\n" +
         "`2349013586984`\n\n" +
         "_Do not contact this number for any other reason or else you will be blocked._";
-    
-    ctx.reply(supportMessage, {
-        parse_mode: "Markdown"
-    }).then((sentMessage) => {
-        setTimeout(() => {
-            ctx.deleteMessage(sentMessage.message_id);
-        }, 10000); // Deletes message after 5 seconds
+
+    // Delete the main menu message if it exists for this user
+    if (reverse[userId] && reverse[userId].mainMenuMessageId) {
+        await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
+    }
+
+    // Send the support message with a 'Back to Menu' button
+    const sentSupportMessage = await ctx.reply(supportMessage, {
+        parse_mode: "Markdown",
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
+            ]
+        }
     });
+
+    // Store the support message ID for this user
+    if (!reverse[userId]) {
+        reverse[userId] = {};
+    }
+    reverse[userId].supportMessageId = sentSupportMessage.message_id;
 });
 // Top earners definition
+// Top earners definition
 bot.action('top_earners', async (ctx) => {
+    const userId = ctx.from.id.toString();
+
+    // Fetch users with 'Registered' payment status
     const usersSnapshot = await db.collection('users').where('paymentStatus', '==', 'Registered').get();
 
+    // Process and sort top earners
     const topEarners = usersSnapshot.docs
         .map(doc => ({ name: doc.data().name, balance: doc.data().balance }))
         .sort((a, b) => b.balance - a.balance)
@@ -269,21 +299,32 @@ bot.action('top_earners', async (ctx) => {
             return `${rankIcon} *${user.name}* — \`${user.balance} points\` 🌿`;
         });
 
+    // Generate the response message
     const responseMessage = topEarners.length > 0
         ? "*🪧 Top 10 Earners 📢:*\n\n" + topEarners.join('\n')
         : "📛 *No registered users found.*";
 
-    // Send the message with Markdown formatting
-    const sentMessage = await ctx.reply(responseMessage, { parse_mode: "Markdown" });
+    // Delete the main menu message if it exists for this user
+    if (reverse[userId] && reverse[userId].mainMenuMessageId) {
+        await ctx.deleteMessage(reverse[userId].mainMenuMessageId);
+    }
 
-    // Set a timeout to delete the message after 10 seconds (10000 milliseconds)
-    setTimeout(() => {
-        ctx.deleteMessage(sentMessage.message_id);
-    }, 10000); // 10 seconds in milliseconds
+    // Send the top earners message with 'Back to Menu' button
+    const sentMessage = await ctx.reply(responseMessage, {
+        parse_mode: "Markdown",
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }]
+            ]
+        }
+    });
+
+    // Store the top earners message ID for this user
+    if (!reverse[userId]) {
+        reverse[userId] = {};
+    }
+    reverse[userId].topEarnersMessageId = sentMessage.message_id;
 });
-
-// Store last message ID in this session-like object for withdrawal actions
-const session = {};
 
 
 
