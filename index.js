@@ -1171,25 +1171,24 @@ bot.action('tasks', async (ctx) => {
                        `💰 <b>Points:</b> <code>${task.points}</code> points\n\n`;
     });
 
-    taskMessage += "<b>Click on a task to open the link and complete it to earn points!</b>";
+    taskMessage += "<b>Click on a task to continue and verify your task completion!</b>";
 
-    // Send task message with inline buttons including the redirect link
+    // Send task message with inline buttons including the continue button
     ctx.reply(taskMessage, {
         parse_mode: "HTML",
         reply_markup: {
             inline_keyboard: tasks.map(task => [
                 {
                     text: `✅ Complete ${task.name}`,
-                    callback_data: `complete_task_${task.id}`,
-                    url: task.link // This is the redirect link for the task
+                    callback_data: `continue_task_${task.id}`, // Action to verify completion
                 }
             ])
         }
     });
 });
 
-// Handle task completion after user clicks the link
-bot.action(/complete_task_(\w+)/, async (ctx) => {
+// Handle task continuation
+bot.action(/continue_task_(\w+)/, async (ctx) => {
     const taskId = ctx.match[1];
     const userId = ctx.from.id.toString();
     const taskRef = db.collection('tasks').doc(taskId);
@@ -1209,28 +1208,94 @@ bot.action(/complete_task_(\w+)/, async (ctx) => {
         return;
     }
 
-    // Remind the user to open the link
-    ctx.reply(`🔗 Please make sure to open the task link provided and complete the task before claiming your reward.`);
+    // Show the link and ask for verification
+    const verifyMessage = `🔗 Verify that you completed the task: <b>${taskData.name}</b>\n` +
+                          `Click the button below to complete the task:\n`;
 
-    // Wait for a confirmation (for example, after 10 seconds) that the user has completed the task
+    const verificationMessage = await ctx.reply(verifyMessage, {
+        parse_mode: "HTML",
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {
+                        text: `✅ I have completed the task - ${taskData.name}`,
+                        callback_data: `verify_task_${taskId}`, // This action will handle verification
+                        url: taskData.link // The link is inside the button
+                    }
+                ]
+            ]
+        }
+    });
+
+    // Wait for 10 seconds, then delete the verification message and continue
     setTimeout(async () => {
-        // Add task to completed tasks
-        userData.completedTasks = userData.completedTasks || [];
-        userData.completedTasks.push(taskId);
+        try {
+            // Delete the message after 10 seconds
+            await ctx.deleteMessage(verificationMessage.message_id);
 
-        // Notify user of task completion and reward processing
-        ctx.reply(`✅ You completed the task: ${taskData.name}. Your reward is processing.`);
+            // Notify the user that the task is being processed
+            ctx.reply(`✅ Task verification is complete! Your reward is processing...`);
 
-        // Update user balance and data
-        userData.balance += taskData.points;
-        await setUserData(userId, userData);
+            // Add task to completed tasks
+            userData.completedTasks = userData.completedTasks || [];
+            userData.completedTasks.push(taskId);
 
-        ctx.reply(`💵 You've been rewarded with ${taskData.points} points! Your new balance is ${userData.balance} points.`);
+            // Update user balance and data
+            userData.balance += taskData.points;
+            await setUserData(userId, userData);
 
-        // Send updated task list
-        await sendUpdatedTaskList(ctx, userId);
-    }, 10000); // Delay to simulate task completion
+            // Notify user of reward
+            ctx.reply(`💵 You've been rewarded with ${taskData.points} points! Your new balance is ${userData.balance} points.`);
+
+            // Send updated task list
+            await sendUpdatedTaskList(ctx, userId);
+        } catch (error) {
+            console.log('Failed to delete message:', error);
+        }
+    }, 10000); // 10 seconds delay
 });
+
+// Handle task verification click
+bot.action(/verify_task_(\w+)/, async (ctx) => {
+    const taskId = ctx.match[1];
+    const userId = ctx.from.id.toString();
+    const taskRef = db.collection('tasks').doc(taskId);
+    const taskDoc = await taskRef.get();
+
+    if (!taskDoc.exists) {
+        ctx.reply('❌ This task no longer exists.');
+        return;
+    }
+
+    const taskData = taskDoc.data();
+    const userData = await getUserData(userId);
+
+    // Check if the task is already completed
+    if (userData.completedTasks && userData.completedTasks.includes(taskId)) {
+        ctx.reply('🌝You have already completed this task.');
+        return;
+    }
+
+    // Confirm task completion
+    ctx.reply(`✅ You have verified the completion of the task: <b>${taskData.name}</b>. Your reward is processing...`, {
+        parse_mode: "HTML"
+    });
+
+    // Add task to completed tasks
+    userData.completedTasks = userData.completedTasks || [];
+    userData.completedTasks.push(taskId);
+
+    // Update user balance and data
+    userData.balance += taskData.points;
+    await setUserData(userId, userData);
+
+    // Notify user of reward
+    ctx.reply(`💵 You've been rewarded with ${taskData.points} points! Your new balance is ${userData.balance} points.`);
+
+    // Send updated task list
+    await sendUpdatedTaskList(ctx, userId);
+});
+
 // Function to send the updated task list
 async function sendUpdatedTaskList(ctx, userId) {
     const tasksRef = db.collection('tasks');
