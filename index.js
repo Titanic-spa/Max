@@ -822,6 +822,7 @@ async function handleAdminAnnouncement(ctx, announcementMessage) {
     ctx.reply("✅ Announcement sent to all users.");
 }
 // Main text handler with switch-case to handle different user actions
+// Main text handler with switch-case to handle different user actions
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
@@ -865,13 +866,18 @@ bot.on('text', async (ctx) => {
                 ctx.reply("❌ Invalid input. Please enter a valid number for points.");
             } else {
                 taskData[userId].points = points;
-                delete taskData[userId].step;
-                ctx.reply(`Task points set to: ${points}\n\nTask setup is complete.`);
+                taskData[userId].step = 'redirect_link';
+                ctx.reply(`Task points set to: ${points}\n\nPlease enter the redirect link for this task:`);
             }
             break;
 
+        case 'redirect_link':
+            taskData[userId].link = ctx.message.text;
+            delete taskData[userId].step;
+            ctx.reply(`Redirect link set to: ${ctx.message.text}\n\nTask setup is complete.`);
+            break;
+
         default:
-            // Handling admin actions
             if (userId === '6478320664') {
                 const adminData = await getUserData(userId);
 
@@ -1148,39 +1154,29 @@ bot.action('tasks', async (ctx) => {
         return;
     }
 
-    // Fetch user data to check completed tasks
     const userData = await getUserData(userId);
     const completedTasks = userData.completedTasks || [];
 
-    // Filter out completed tasks from the task list
     const tasks = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(task => !completedTasks.includes(task.id)); // Filter tasks the user has completed
+        .filter(task => !completedTasks.includes(task.id));
 
     if (tasks.length === 0) {
         ctx.reply("🎉 *Congratulations!* You have completed all available tasks!", { parse_mode: "Markdown" });
         return;
     }
 
-    // Construct the task message for available (not completed) tasks
-let taskMessage = "<b>Available Tasks:</b>\n\n";
-tasks.forEach(task => {
-    taskMessage += `📋 <b>Task:</b> ${task.name}\n` +
-                   `📝 <b>Description:</b> <i>${task.description}</i>\n` +
-                   `💰 <b>Points:</b> <code>${task.points}</code> points\n\n`;
-});
+    let taskMessage = "<b>Available Tasks:</b>\n\n";
+    tasks.forEach(task => {
+        taskMessage += `📋 <b>Task:</b> ${task.name}\n` +
+                       `📝 <b>Description:</b> <i>${task.description}</i>\n` +
+                       `💰 <b>Points:</b> <code>${task.points}</code> points\n` +
+                       `<a href="${task.link}">🔗 Click here to complete this task</a>\n\n`;
+    });
 
-taskMessage += "<b>Click on a task to complete it.</b>";
-
-// Send task message with inline buttons for remaining tasks
-ctx.reply(taskMessage, {
-    parse_mode: "HTML",
-    reply_markup: {
-        inline_keyboard: tasks.map(task => [
-            { text: `✅ Complete ${task.name}`, callback_data: `complete_task_${task.id}` }
-        ])
-    }
-});
+    ctx.reply(taskMessage, {
+        parse_mode: "HTML"
+    });
 });
 // Handle task completion
 bot.action(/complete_task_(\w+)/, async (ctx) => {
@@ -1269,20 +1265,17 @@ async function sendUpdatedTaskList(ctx, userId) {
     });
 }
 // Action to upload tasks
+// Action to upload tasks
 bot.action('tasks_upload', async (ctx) => {
     const message = await ctx.reply("Let's start creating a new task. Please choose an option:", {
         reply_markup: {
             inline_keyboard: [
                 [{ text: 'Enter Task Name', callback_data: 'enter_task_name' }],
+                [{ text: 'Tasks Link', callback_data: 'tasks_link' }],
                 [{ text: 'Confirm Task', callback_data: 'confirm_task' }]
             ]
         }
     });
-
-    // Set a timeout to delete the message after 1 minute (60000 milliseconds)
-    setTimeout(() => {
-        ctx.deleteMessage(message.message_id).catch(err => console.log('Could not delete message:', err));
-    }, 60000);
 });
 
 // Store task creation data in memory
@@ -1317,15 +1310,16 @@ bot.action('confirm_task', async (ctx) => {
     const userId = ctx.from.id;
     const task = taskData[userId];
 
-    if (task.name && task.description && task.points) {
+    if (task.name && task.description && task.points && task.link) {
         // Save the task in Firestore
         await db.collection('tasks').add({
             name: task.name,
             description: task.description,
-            points: task.points
+            points: task.points,
+            link: task.link
         });
-          ctx.deleteMessage()
-        ctx.reply(`✅ Task "${task.name}" created successfully!`);
+        ctx.deleteMessage();
+        ctx.reply(`✅ Task "${task.name}" created successfully with a redirect link!`);
     } else {
         ctx.reply("⚠️ You haven't completed all the task details. Please provide all the necessary information.");
     }
