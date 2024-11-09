@@ -1138,11 +1138,6 @@ bot.action(/confirm_delete_(.+)/, async (ctx) => {
     await db.collection('users').doc(userId).delete();
     ctx.reply("✅ User has been deleted successfully.");
 });
-
-// Handle cancellation of deletion
-bot.action('cancel_delete', (ctx) => {
-    ctx.reply("❌ User deletion has been canceled.");
-});
 // Handle 'tasks' action to show tasks
 bot.action('tasks', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -1176,7 +1171,7 @@ bot.action('tasks', async (ctx) => {
                        `💰 <b>Points:</b> <code>${task.points}</code> points\n\n`;
     });
 
-    taskMessage += "<b>Click on a task to complete it and follow the link provided.</b>";
+    taskMessage += "<b>Click on a task to open the link and complete it to earn points!</b>";
 
     // Send task message with inline buttons including the redirect link
     ctx.reply(taskMessage, {
@@ -1185,15 +1180,15 @@ bot.action('tasks', async (ctx) => {
             inline_keyboard: tasks.map(task => [
                 {
                     text: `✅ Complete ${task.name}`,
-                    // This is the redirect link for the task
                     callback_data: `complete_task_${task.id}`,
-                    url: task.link
+                    url: task.link // This is the redirect link for the task
                 }
             ])
         }
     });
 });
-// Handle task completion
+
+// Handle task completion after user clicks the link
 bot.action(/complete_task_(\w+)/, async (ctx) => {
     const taskId = ctx.match[1];
     const userId = ctx.from.id.toString();
@@ -1214,22 +1209,18 @@ bot.action(/complete_task_(\w+)/, async (ctx) => {
         return;
     }
 
-    // Delete the task list message immediately to prevent multiple clicks
-    try {
-        await ctx.deleteMessage(); // Deletes the task list message right away
-    } catch (error) {
-        console.log('Failed to delete message:', error);
-    }
+    // Remind the user to open the link
+    ctx.reply(`🔗 Please make sure to open the task link provided and complete the task before claiming your reward.`);
 
-    // Add task to completed tasks
-    userData.completedTasks = userData.completedTasks || [];
-    userData.completedTasks.push(taskId);
-
-    // Notify user of task completion and reward processing
-    ctx.reply(`✅ Your task is processing make sure you completed👉 ${taskData.name}.\n Your reward is processing🔃`);
-
-    // Delay of 10 seconds before rewarding
+    // Wait for a confirmation (for example, after 10 seconds) that the user has completed the task
     setTimeout(async () => {
+        // Add task to completed tasks
+        userData.completedTasks = userData.completedTasks || [];
+        userData.completedTasks.push(taskId);
+
+        // Notify user of task completion and reward processing
+        ctx.reply(`✅ You completed the task: ${taskData.name}. Your reward is processing.`);
+
         // Update user balance and data
         userData.balance += taskData.points;
         await setUserData(userId, userData);
@@ -1238,7 +1229,7 @@ bot.action(/complete_task_(\w+)/, async (ctx) => {
 
         // Send updated task list
         await sendUpdatedTaskList(ctx, userId);
-    }, 10000);
+    }, 10000); // Delay to simulate task completion
 });
 // Function to send the updated task list
 async function sendUpdatedTaskList(ctx, userId) {
