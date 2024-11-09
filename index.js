@@ -1143,7 +1143,7 @@ bot.action(/confirm_delete_(.+)/, async (ctx) => {
 bot.action('cancel_delete', (ctx) => {
     ctx.reply("❌ User deletion has been canceled.");
 });
-// Handle 'task' action to show tasks
+// Handle 'tasks' action to show tasks
 bot.action('tasks', async (ctx) => {
     const userId = ctx.from.id.toString();
     const tasksRef = db.collection('tasks');
@@ -1154,9 +1154,11 @@ bot.action('tasks', async (ctx) => {
         return;
     }
 
+    // Fetch user data to check completed tasks
     const userData = await getUserData(userId);
     const completedTasks = userData.completedTasks || [];
 
+    // Filter out completed tasks from the task list
     const tasks = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(task => !completedTasks.includes(task.id));
@@ -1166,16 +1168,28 @@ bot.action('tasks', async (ctx) => {
         return;
     }
 
+    // Construct the task message for available tasks
     let taskMessage = "<b>Available Tasks:</b>\n\n";
     tasks.forEach(task => {
         taskMessage += `📋 <b>Task:</b> ${task.name}\n` +
                        `📝 <b>Description:</b> <i>${task.description}</i>\n` +
-                       `💰 <b>Points:</b> <code>${task.points}</code> points\n` +
-                       `<a href="${task.link}">🔗 Click here to complete this task</a>\n\n`;
+                       `💰 <b>Points:</b> <code>${task.points}</code> points\n\n`;
     });
 
+    taskMessage += "<b>Click on a task to complete it and follow the link provided.</b>";
+
+    // Send task message with inline buttons including the redirect link
     ctx.reply(taskMessage, {
-        parse_mode: "HTML"
+        parse_mode: "HTML",
+        reply_markup: {
+            inline_keyboard: tasks.map(task => [
+                {
+                    text: `✅ Complete ${task.name}`,
+                    url: task.link, // This is the redirect link for the task
+                    callback_data: `complete_task_${task.id}`
+                }
+            ])
+        }
     });
 });
 // Handle task completion
