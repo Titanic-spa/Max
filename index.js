@@ -1185,8 +1185,9 @@ bot.action('tasks', async (ctx) => {
             inline_keyboard: tasks.map(task => [
                 {
                     text: `✅ Complete ${task.name}`,
-                    url: task.link, // This is the redirect link for the task
-                    callback_data: `complete_task_${task.id}`
+                    // This is the redirect link for the task
+                    callback_data: `complete_task_${task.id}`,
+                    url: task.link
                 }
             ])
         }
