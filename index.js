@@ -85,7 +85,7 @@ bot.command('activate', async (ctx) => {
 
     // Update user payment status
     userData.paymentStatus = "registered";
-    await updateUserData(userId, userData);
+    await setUserData(userId, userData);
 
     ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *registered*. Please restart the bot.");
 });
