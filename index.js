@@ -55,7 +55,9 @@ async function countInvitedFriends(referrerId) {
 bot.command('activate', async (ctx) => {
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
-
+    const args = ctx.message.text.split(" ");
+    let referrerId = args[1] ? args[1] : null;
+    // Split the command input to extract the activation code
     const input = ctx.message.text.split(' ');
     if (input.length !== 2) {
         return ctx.reply("❌ <b>Invalid format.</b> Please use the command like this:\n<code>/activate &lt;code&gt;</code>", {
@@ -90,17 +92,23 @@ bot.command('activate', async (ctx) => {
 
     // Mark the code as used
     codes[code].used = true;
-await setUserData(userId, {
-        photoId,
-        name: ctx.from.first_name,
-        paymentStatus: 'Pending',
-        balance: 150,
-        expecting: 'transaction_hash' // Set flag to indicate we are expecting a transaction hash or name next
-    });
-    // Update user payment status
+
+    // Update user payment status and balance
     userData.paymentStatus = "Registered";
+    userData.balance = (userData.balance || 0) + 150;
     await setUserData(userId, userData);
 
+    // Check if the user has a referrer
+    if (userData.referrer) {
+        const referrerData = await getUserData(userData.referrer);
+        const updatedBalance = (referrerData.balance || 0) + 150;
+        await updateUserBalance(userData.referrer, updatedBalance);
+
+        // Notify the referrer about the bonus
+        await ctx.telegram.sendMessage(userData.referrer, "🎉 Your friend has completed registration! You earned 150 points!");
+    }
+
+    // Notify the user about successful activation
     ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *Registered*. Please restart the bot.", {
         parse_mode: 'Markdown'
     });
