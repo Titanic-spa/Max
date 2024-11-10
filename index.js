@@ -58,15 +58,17 @@ bot.command('activate', async (ctx) => {
 
     const input = ctx.message.text.split(' ');
     if (input.length !== 2) {
-        return ctx.reply("❌ *Invalid format.* Please use the command like this:\n`/activate <code>`");
+    return ctx.reply("❌ <b>Invalid format.</b> Please use the command like this:\n<code>/activate &lt;code&gt;</code>", {
+        parse_mode: 'HTML'
+    });
     }
-
     const code = input[1].toUpperCase();
-
-    // Check if the code exists and is valid
-    if (!codes[code]) {
-        return ctx.reply("❌ *Invalid or expired code.* Please try again.");
-    }
+// Check if the code exists and is valid
+if (!codes[code]) {
+    return ctx.reply("❌ *Invalid or expired code.* Please try again.", {
+        parse_mode: 'MarkdownV2'
+    });
+}
 
     const { expiresAt, used } = codes[code];
 
@@ -1477,7 +1479,8 @@ bot.action('generate_code', async (ctx) => {
         used: false
     };
 
-    ctx.reply(`🔑 *New Code Generated*:\n\nCode: \`${code}\`\n\n🕒 *Expires in 5 minutes.*`);
+    ctx.reply(`🔑 *New Code Generated*:\n\nCode: \`${code}\`\n\n🕒 *Expires in 5 minutes.*`, {
+    parse_mode: 'MarkdownV2'
 });
 
 
