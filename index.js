@@ -53,7 +53,7 @@ async function countInvitedFriends(referrerId) {
     return invitedSnapshot.size; // Return count of invited friends
 }
 // Handle /me command for admin
-bot.command('me',async (ctx) => {
+bot.command('me', async (ctx) => {
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
 
@@ -62,11 +62,12 @@ bot.command('me',async (ctx) => {
         ctx.reply("📋 *Admin Panel* 📋\n\n Welcome, Admin\nUse the buttons below to manage users, tasks, and announcements etc. Ensure to maintain a smooth experience for all users.\n\nSelect an option to proceed:", {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: '⤴️Upload tasks', callback_data: 'tasks_upload' }],
-                    [{ text: '🕵️View/Delete Tasks', callback_data: 'tasks_uploaded' }],
-                    [{ text: '🚻Users/Edit/Delete', callback_data: 'log_users' }],
-                    [{ text: '✋Pause & Play 🤖', callback_data: 'pause' }],
-                    [{ text: '📢Announcements', callback_data: 'make_announcement' }] // New Announcements button
+                [{ text: '⤴️Upload tasks', callback_data: 'tasks_upload' }],
+                [{ text: '🕵️View/Delete Tasks', callback_data: 'tasks_uploaded' }],
+                [{ text: '🚻Users/Edit/Delete', callback_data: 'log_users' }],
+                [{ text: '✋Pause & Play 🤖', callback_data: 'pause' }],
+                [{ text: '📢Announcements', callback_data: 'make_announcement' }],
+                [{ text: '🔑Generate Code', callback_data: 'generate_code' }] // New Generate Code button
                 ]
             }
         });
@@ -1426,6 +1427,57 @@ bot.action(/delete_task_(\w+)/, async (ctx) => {
     const taskId = ctx.match[1];
     await db.collection('tasks').doc(taskId).delete();
     ctx.reply('❌ Task deleted successfully.');
+});
+const codes = {}; // Object to store generated codes
+
+bot.action('generate_code', async (ctx) => {
+    const code = Math.random().toString(36).substr(2, 8).toUpperCase(); // Generate a random 8-character code
+    const expiryTime = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
+
+    // Store the code with its expiry time
+    codes[code] = {
+        expiresAt: expiryTime,
+        used: false
+    };
+
+    ctx.reply(`🔑 *New Code Generated*:\n\nCode: \`${code}\`\n\n🕒 *Expires in 5 minutes.*`);
+});
+bot.command('activate', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userData = await getUserData(userId);
+
+    const input = ctx.message.text.split(' ');
+    if (input.length !== 2) {
+        return ctx.reply("❌ *Invalid format.* Please use the command like this:\n`/activate <code>`");
+    }
+
+    const code = input[1].toUpperCase();
+
+    // Check if the code exists and is valid
+    if (!codes[code]) {
+        return ctx.reply("❌ *Invalid or expired code.* Please try again.");
+    }
+
+    const { expiresAt, used } = codes[code];
+
+    // Check if the code is expired or already used
+    if (Date.now() > expiresAt) {
+        delete codes[code]; // Remove expired code
+        return ctx.reply("❌ *This code has expired.* Please request a new code.");
+    }
+
+    if (used) {
+        return ctx.reply("❌ *This code has already been used.* Please request a new code.");
+    }
+
+    // Mark the code as used
+    codes[code].used = true;
+
+    // Update user payment status
+    userData.paymentStatus = "registered";
+    await updateUserData(userId, userData);
+
+    ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *registered*. Please restart the bot.");
 });
 
 // Start the bot
