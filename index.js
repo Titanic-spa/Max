@@ -120,7 +120,7 @@ bot.command('me', async (ctx) => {
     const userData = await getUserData(userId);
 
     // Check if the user is the admin
-    if (userId === '6478320664') { // Replace with your actual admin chat ID
+    if (userId === '1366682327') { // Replace with your actual admin chat ID
         ctx.reply("📋 *Admin Panel* 📋\n\n Welcome, Admin\nUse the buttons below to manage users, tasks, and announcements etc. Ensure to maintain a smooth experience for all users.\n\nSelect an option to proceed:", {
             reply_markup: {
                 inline_keyboard: [
@@ -256,7 +256,7 @@ console.log("reverse[userId] after setting:", reverse[userId]);
  // Handle "make_announcement" button press
 bot.action('make_announcement', async (ctx) => {
     const userId = ctx.from.id.toString();
-    if (userId === '6478320664') { // Confirm it's the admin
+    if (userId === '1366682327') { // Confirm it's the admin
         // Set admin's expecting status to "announcement"
         const adminData = await getUserData(userId);
         adminData.expecting = 'announcement';
@@ -662,7 +662,7 @@ bot.action(/crypto_package_(\d+)_(\d+\.\d+)_(\d+)/, async (ctx) => {
 
         // Send request to admin with package details (USDT)
 const adminMessage = `Withdrawal request:\nUsername: ${userData.name}\nUSDT Address: ${userData.usdtAddress}\nPackage: ${packageAmount} USDT`;
-await ctx.telegram.sendMessage('6478320664', adminMessage, {
+await ctx.telegram.sendMessage('1366682327', adminMessage, {
     reply_markup: {
         inline_keyboard: [
             [{ text: 'Accept', callback_data: `accept_withdrawal_${userId}` }],
@@ -706,7 +706,7 @@ bot.action(/bank_package_(\d+)_(\d+)/, async (ctx) => {
 
         // Send request to admin
         const adminMessage = `Withdrawal request:\nUsername: ${userData.name}\nBank Details: ${userData.bankDetails}\nPackage: ${points} Naira`;
-        await ctx.telegram.sendMessage('6478320664', adminMessage, {
+        await ctx.telegram.sendMessage('1366682327', adminMessage, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: 'Accept', callback_data: `accept_withdrawal_${userId}` }],
@@ -844,7 +844,7 @@ async function handleTransactionHash(ctx, userId, userData) {
     await setUserData(userId, userData);
 
     const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
-    const sentMessage = await ctx.telegram.sendPhoto('6478320664', userData.photoId, {
+    const sentMessage = await ctx.telegram.sendPhoto('1366682327', userData.photoId, {
         caption: adminMessage,
         reply_markup: {
             inline_keyboard: [
@@ -978,7 +978,7 @@ bot.on('text', async (ctx) => {
             break;
 
         default:
-            if (userId === '6478320664') {
+            if (userId === '1366682327') {
                 const adminData = await getUserData(userId);
 
                 if (adminData && adminData.expecting === 'balance') {
@@ -1012,7 +1012,7 @@ bot.action(/decline_(\d+)/, async (ctx) => {
 
 // Async function to handle balance editing by admin
 async function editBalance(ctx) {
-    const adminId = '6478320664';
+    const adminId = '1366682327';
     const userId = ctx.from.id.toString();
 
     if (userId === adminId) {
@@ -1046,7 +1046,7 @@ async function editBalance(ctx) {
 
 // Handle the callback for editing a user's balance (admin only)
 bot.action(/edit_balance_(.+)/, async (ctx) => {
-    const adminId = '6478320664';
+    const adminId = '1366682327';
     const userId = ctx.from.id.toString();
 
     if (userId === adminId) {
@@ -1073,7 +1073,7 @@ bot.action(/send_message_(.+)/, async (ctx) => {
     const adminId = ctx.from.id.toString();
 
     // Check if the admin is performing the action
-    if (adminId === '6478320664') {
+    if (adminId === '1366682327') {
         const adminData = await getUserData(adminId);
         adminData.expecting = `send_message_${userId}`; // Set expecting field for specific user message
         await setUserData(adminId, adminData);
@@ -1088,7 +1088,7 @@ bot.action('log_users', async (ctx) => {
     const userId = ctx.from.id.toString();
 
     // Check if the user is the admin
-    if (userId === '6478320664') { // Replace with your actual admin chat ID
+    if (userId === '1366682327') { // Replace with your actual admin chat ID
         const usersSnapshot = await db.collection('users').get();
 
         // Create a list of users
@@ -1149,7 +1149,7 @@ bot.action(/view_user_(.+)/, async (ctx) => {
 });
  // Update the user // Async function to handle balance editing by admin
 async function editBalance(ctx) {
-    const adminId = '6478320664'; // Admin ID (replace with actual admin ID)
+    const adminId = '1366682327'; // Admin ID (replace with actual admin ID)
     const userId = ctx.from.id.toString();
 
     // Check if the sender is the admin
@@ -1190,7 +1190,7 @@ async function editBalance(ctx) {
 
 // Handle the callback for editing a user's balance (admin only)
 bot.action(/edit_balance_(.+)/, async (ctx) => {
-    const adminId = '6478320664'; // Admin ID (replace with actual admin ID)
+    const adminId = '1366682327'; // Admin ID (replace with actual admin ID)
     const userId = ctx.from.id.toString();
 
     if (userId === adminId) { // Check if the user is the admin
