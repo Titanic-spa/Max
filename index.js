@@ -609,9 +609,9 @@ async function handleCryptoPackageSelection(ctx, userId) {
     ctx.reply("Select your withdrawal package 📦:\n\nIf you made a mistake with your previous address, you can update it here. Otherwise, simply proceed with your action!", {
         reply_markup: {
             inline_keyboard: [
-                [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_2.5_${userId}` }],
-                [{ text: '10,000 Points - 5 USDT', callback_data: `crypto_package_5_${userId}` }],
-                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_7.5_${userId}` }]
+                [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_5000_2.5_${userId}` }],
+                [{ text: '10,000 Points - 5 USDT', callback_data: `crypto_package_10000_5_${userId}` }],
+                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_15000_7.5_${userId}` }]
             ]
         }
     });
@@ -637,6 +637,8 @@ bot.action(/bank_package_(\d+)_(\d+)/, async (ctx) => {
                 ]
             }
         });
+        await ctx.deletemessage();
+        
         ctx.reply("✅ Your withdrawal request has been sent for approval.");
     } else {
         ctx.reply("❌ You don't have enough points to make this withdrawal.");
@@ -644,20 +646,24 @@ bot.action(/bank_package_(\d+)_(\d+)/, async (ctx) => {
 });
 
 // Handle crypto package selection callback
-bot.action(/crypto_package_(\d+)_(\d+)/, async (ctx) => {
-    const userId = ctx.match[2];
-    const packageAmount = ctx.match[1];
+// Handle crypto package selection callback
+bot.action(/crypto_package_(\d+)_(\d+\.\d+)_(\d+)/, async (ctx) => {
+    const userId = ctx.match[3];
+    const pointsRequired = parseInt(ctx.match[1]); // Number of points required
+    const packageAmount = parseFloat(ctx.match[2]); // USDT amount
 
     const userData = await getUserData(userId);
 
-    if (userData.balance >= packageAmount) {
-        userData.balance -= packageAmount;
+    // Check if the user has enough points
+    if (userData.balance >= pointsRequired) {
+        // Deduct points from user's balance
+        userData.balance -= pointsRequired;
         await setUserData(userId, userData);
 
-        // Send request to admin
+        // Send request to admin with package information (USDT, not points)
         const adminMessage = `Withdrawal request:\nUsername: ${userData.name}\nUSDT Address: ${userData.usdtAddress}\nPackage: ${packageAmount} USDT`;
 
-ctx.telegram.sendMessage('6478320664', adminMessage, {
+        await ctx.telegram.sendMessage('6478320664', adminMessage, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: 'Accept', callback_data: `accept_withdrawal_${userId}` }],
@@ -665,7 +671,19 @@ ctx.telegram.sendMessage('6478320664', adminMessage, {
                 ]
             }
         });
-        ctx.reply("✅ Your withdrawal request has been sent for approval.");
+           await ctx.deletemessage();
+        // Send initial message confirming withdrawal request
+        const initialMessage = await ctx.reply("✅ Your withdrawal request has been received.");
+
+        // Wait for 5 seconds before sending the next message
+        setTimeout(async () => {
+            // Delete the previous message
+            await ctx.deleteMessage(initialMessage.message_id);
+
+            // Send a new message indicating the withdrawal is being processed
+            await ctx.reply("🔄 Your withdrawal is being processed, please be patient...\n\nWe are currently reviewing your request. Once processed, the funds will be sent to your account.\n\n⏳ Thank you for your patience! We'll update you soon.");
+        }, 5000); // 5000 milliseconds = 5 seconds
+
     } else {
         ctx.reply("❌ You don't have enough points to make this withdrawal.");
     }
