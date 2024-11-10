@@ -94,6 +94,7 @@ bot.command('activate', async (ctx) => {
     codes[code].used = true;
 
     // Update user payment status and balance
+    userData.name = ctx.from.first_name || 'Anonymus';
     userData.paymentStatus = "Registered";
     userData.balance = (userData.balance || 0) + 150;
     await setUserData(userId, userData);
