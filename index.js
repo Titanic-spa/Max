@@ -90,7 +90,13 @@ bot.command('activate', async (ctx) => {
 
     // Mark the code as used
     codes[code].used = true;
-
+await setUserData(userId, {
+        photoId,
+        name: ctx.from.first_name,
+        paymentStatus: 'Pending',
+        balance: 150,
+        expecting: 'transaction_hash' // Set flag to indicate we are expecting a transaction hash or name next
+    });
     // Update user payment status
     userData.paymentStatus = "Registered";
     await setUserData(userId, userData);
