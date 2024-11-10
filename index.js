@@ -58,28 +58,34 @@ bot.command('activate', async (ctx) => {
 
     const input = ctx.message.text.split(' ');
     if (input.length !== 2) {
-    return ctx.reply("❌ <b>Invalid format.</b> Please use the command like this:\n<code>/activate &lt;code&gt;</code>", {
-        parse_mode: 'HTML'
-    });
+        return ctx.reply("❌ <b>Invalid format.</b> Please use the command like this:\n<code>/activate &lt;code&gt;</code>", {
+            parse_mode: 'HTML'
+        });
     }
+
     const code = input[1].toUpperCase();
-// Check if the code exists and is valid
-if (!codes[code]) {
-    return ctx.reply("❌ *Invalid or expired code.* Please try again.", {
-        parse_mode: 'MarkdownV2'
-    });
-}
+
+    // Check if the code exists and is valid
+    if (!codes || !codes[code]) {
+        return ctx.reply("❌ *Invalid or expired code.* Please try again.", {
+            parse_mode: 'Markdown'
+        });
+    }
 
     const { expiresAt, used } = codes[code];
 
     // Check if the code is expired or already used
     if (Date.now() > expiresAt) {
         delete codes[code]; // Remove expired code
-        return ctx.reply("❌ *This code has expired.* Please request a new code.");
+        return ctx.reply("❌ *This code has expired.* Please request a new code.", {
+            parse_mode: 'Markdown'
+        });
     }
 
     if (used) {
-        return ctx.reply("❌ *This code has already been used.* Please request a new code.");
+        return ctx.reply("❌ *This code has already been used.* Please request a new code.", {
+            parse_mode: 'Markdown'
+        });
     }
 
     // Mark the code as used
@@ -89,7 +95,9 @@ if (!codes[code]) {
     userData.paymentStatus = "Registered";
     await setUserData(userId, userData);
 
-    ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *registered*. Please restart the bot.");
+    ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *Registered*. Please restart the bot.", {
+        parse_mode: 'Markdown'
+    });
 });
 // Handle /me command for admin
 bot.command('me', async (ctx) => {
@@ -1473,6 +1481,9 @@ bot.action('generate_code', async (ctx) => {
     const code = Math.random().toString(36).substr(2, 8).toUpperCase(); // Generate a random 8-character code
     const expiryTime = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
 
+    // Ensure the 'codes' object exists
+    if (!codes) codes = {};
+
     // Store the code with its expiry time
     codes[code] = {
         expiresAt: expiryTime,
@@ -1480,7 +1491,8 @@ bot.action('generate_code', async (ctx) => {
     };
 
     ctx.reply(`🔑 *New Code Generated*:\n\nCode: \`${code}\`\n\n🕒 *Expires in 5 minutes.*`, {
-    parse_mode: 'MarkdownV2'
+        parse_mode: 'Markdown'
+    });
 });
 
 
