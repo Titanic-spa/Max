@@ -52,6 +52,43 @@ async function countInvitedFriends(referrerId) {
     const invitedSnapshot = await db.collection('users').where('referrer', '==', referrerId).get();
     return invitedSnapshot.size; // Return count of invited friends
 }
+bot.command('activate', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const userData = await getUserData(userId);
+
+    const input = ctx.message.text.split(' ');
+    if (input.length !== 2) {
+        return ctx.reply("❌ *Invalid format.* Please use the command like this:\n`/activate <code>`");
+    }
+
+    const code = input[1].toUpperCase();
+
+    // Check if the code exists and is valid
+    if (!codes[code]) {
+        return ctx.reply("❌ *Invalid or expired code.* Please try again.");
+    }
+
+    const { expiresAt, used } = codes[code];
+
+    // Check if the code is expired or already used
+    if (Date.now() > expiresAt) {
+        delete codes[code]; // Remove expired code
+        return ctx.reply("❌ *This code has expired.* Please request a new code.");
+    }
+
+    if (used) {
+        return ctx.reply("❌ *This code has already been used.* Please request a new code.");
+    }
+
+    // Mark the code as used
+    codes[code].used = true;
+
+    // Update user payment status
+    userData.paymentStatus = "registered";
+    await updateUserData(userId, userData);
+
+    ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *registered*. Please restart the bot.");
+});
 // Handle /me command for admin
 bot.command('me', async (ctx) => {
     const userId = ctx.from.id.toString();
@@ -1442,43 +1479,7 @@ bot.action('generate_code', async (ctx) => {
 
     ctx.reply(`🔑 *New Code Generated*:\n\nCode: \`${code}\`\n\n🕒 *Expires in 5 minutes.*`);
 });
-bot.command('activate', async (ctx) => {
-    const userId = ctx.from.id.toString();
-    const userData = await getUserData(userId);
 
-    const input = ctx.message.text.split(' ');
-    if (input.length !== 2) {
-        return ctx.reply("❌ *Invalid format.* Please use the command like this:\n`/activate <code>`");
-    }
-
-    const code = input[1].toUpperCase();
-
-    // Check if the code exists and is valid
-    if (!codes[code]) {
-        return ctx.reply("❌ *Invalid or expired code.* Please try again.");
-    }
-
-    const { expiresAt, used } = codes[code];
-
-    // Check if the code is expired or already used
-    if (Date.now() > expiresAt) {
-        delete codes[code]; // Remove expired code
-        return ctx.reply("❌ *This code has expired.* Please request a new code.");
-    }
-
-    if (used) {
-        return ctx.reply("❌ *This code has already been used.* Please request a new code.");
-    }
-
-    // Mark the code as used
-    codes[code].used = true;
-
-    // Update user payment status
-    userData.paymentStatus = "registered";
-    await updateUserData(userId, userData);
-
-    ctx.reply("✅ *Activation Successful!*\n\nYour payment status has been updated to *registered*. Please restart the bot.");
-});
 
 // Start the bot
 console.log(`on fire max⏩⏩`)
