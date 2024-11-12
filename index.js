@@ -94,8 +94,8 @@ bot.command('activate', async (ctx) => {
     codes[code].used = true;
 
     // Update user payment status and balance
-    userData.name = ctx.from.first_name || 'Anonymus';
-    userData.paymentStatus = "Registered";
+    userData.name = `${ctx.from.first_name} ${ctx.from.last_name || ''}`.trim() || 'Anonymous';
+userData.paymentStatus = "Registered";
     userData.balance = (userData.balance || 0) + 150;
     await setUserData(userId, userData);
 
@@ -823,15 +823,15 @@ bot.on('photo', async (ctx) => {
     const photoId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
     const userId = ctx.from.id.toString();
 
-    await setUserData(userId, {
-        photoId,
-        name: ctx.from.first_name,
-        paymentStatus: 'Pending',
-        balance: 150,
-        expecting: 'transaction_hash' // Set flag to indicate we are expecting a transaction hash or name next
-    });
+await setUserData(userId, {
+    photoId,
+    name: `${ctx.from.first_name} ${ctx.from.last_name || ''}`.trim(),
+    paymentStatus: 'Pending',
+    balance: 150,
+    expecting: 'transaction_hash' // Set flag to indicate we are expecting a transaction hash or name next
+});
 
-    ctx.reply("📝Submit your Bank Name or Transaction Hash if it was Usdt you sent.");
+ctx.reply("📝Submit your Bank Name or Transaction Hash if it was USDT you sent.");
 });
 
 
