@@ -639,7 +639,6 @@ async function handleCryptoPackageSelection(ctx, userId) {
     // Store the message ID to delete later
     packageMessages[userId] = message.message_id;
 }
-
 // Handle crypto package selection callback
 bot.action(/crypto_package_(\d+)_(\d+\.\d+)_(\d+)/, async (ctx) => {
     const points = parseInt(ctx.match[1]);
@@ -648,10 +647,22 @@ bot.action(/crypto_package_(\d+)_(\d+\.\d+)_(\d+)/, async (ctx) => {
 
     const userData = await getUserData(userId);
 
+    // Check if the user is eligible for withdrawal (once every 24 hours)
+    const currentTime = Date.now();
+    const lastWithdrawalTime = userData.lastWithdrawalTime || 0;
+    const timeSinceLastWithdrawal = currentTime - lastWithdrawalTime;
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    if (timeSinceLastWithdrawal < twentyFourHours) {
+        const remainingTime = Math.ceil((twentyFourHours - timeSinceLastWithdrawal) / (60 * 60 * 1000));
+        return ctx.reply(`❌ You can only withdraw once every 24 hours. Please try again in ${remainingTime} hour(s).`);
+    }
+
     // Check if the user has enough points
     if (userData.balance >= points) {
-        // Deduct points from user's balance
+        // Deduct points from user's balance and update last withdrawal time
         userData.balance -= points;
+        userData.lastWithdrawalTime = currentTime;
         await setUserData(userId, userData);
 
         // Delete the package selection message
@@ -661,25 +672,23 @@ bot.action(/crypto_package_(\d+)_(\d+\.\d+)_(\d+)/, async (ctx) => {
         }
 
         // Send request to admin with package details (USDT)
-const adminMessage = `Withdrawal request:\nUsername: ${userData.name}\nUSDT Address: ${userData.usdtAddress}\nPackage: ${packageAmount} USDT`;
-await ctx.telegram.sendMessage('1366682327', adminMessage, {
-    reply_markup: {
-        inline_keyboard: [
-            [{ text: 'Accept', callback_data: `accept_withdrawal_${userId}` }],
-            [{ text: 'Decline', callback_data: `decline_withdrawal_${userId}` }]
-        ]
-    }
-});
+        const adminMessage = `Withdrawal request:\nUsername: ${userData.name}\nUSDT Address: ${userData.usdtAddress}\nPackage: ${packageAmount} USDT`;
+        await ctx.telegram.sendMessage('1366682327', adminMessage, {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Accept', callback_data: `accept_withdrawal_${userId}` }],
+                    [{ text: 'Decline', callback_data: `decline_withdrawal_${userId}` }]
+                ]
+            }
+        });
 
-// Initial confirmation message to user
-ctx.reply("✅ Your withdrawal request has been sent.");
+        // Confirmation message to user
+        ctx.reply("✅ Your withdrawal request has been sent.");
 
-// Wait for 6 seconds before deleting the initial message and sending "Request processing..."
-setTimeout(async () => {
-    // Delete the original confirmation message
-    const userMessage = await ctx.reply("Request processing... ⏳💸 Payment will be received Soon.");
-    await ctx.deleteMessage(userMessage.message_id);  // This will delete the initial message
-}, 6000);  // 6 seconds
+        // Wait for 6 seconds before sending a processing message
+        setTimeout(async () => {
+            await ctx.reply("Request processing... ⏳💸 Payment will be received soon.");
+        }, 6000);
     } else {
         ctx.reply("❌ You don't have enough points to make this withdrawal.");
     }
@@ -692,10 +701,22 @@ bot.action(/bank_package_(\d+)_(\d+)/, async (ctx) => {
 
     const userData = await getUserData(userId);
 
+    // Check if the user is eligible for withdrawal (once every 24 hours)
+    const currentTime = Date.now();
+    const lastWithdrawalTime = userData.lastWithdrawalTime || 0;
+    const timeSinceLastWithdrawal = currentTime - lastWithdrawalTime;
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+
+    if (timeSinceLastWithdrawal < twentyFourHours) {
+        const remainingTime = Math.ceil((twentyFourHours - timeSinceLastWithdrawal) / (60 * 60 * 1000));
+        return ctx.reply(`❌ You can only withdraw once every 24 hours. Please try again in ${remainingTime} hour(s).`);
+    }
+
     // Check if the user has enough points
     if (userData.balance >= points) {
-        // Deduct points from user's balance
+        // Deduct points from user's balance and update last withdrawal time
         userData.balance -= points;
+        userData.lastWithdrawalTime = currentTime;
         await setUserData(userId, userData);
 
         // Delete the package selection message
