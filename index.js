@@ -1259,7 +1259,7 @@ bot.action(/confirm_delete_(.+)/, async (ctx) => {
     await db.collection('users').doc(userId).delete();
     ctx.reply("✅ User has been deleted successfully.");
 });
-// Handle 'tasks' action to show tasks
+// Handle 'tasks' action to show the first available task
 bot.action('tasks', async (ctx) => {
     const userId = ctx.from.id.toString();
     const tasksRef = db.collection('tasks');
@@ -1274,106 +1274,41 @@ bot.action('tasks', async (ctx) => {
     const userData = await getUserData(userId);
     const completedTasks = userData.completedTasks || [];
 
-    // Filter out completed tasks from the task list
-    const tasks = snapshot.docs
+    // Get the first uncompleted task
+    const task = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(task => !completedTasks.includes(task.id));
+        .find(task => !completedTasks.includes(task.id));
 
-    if (tasks.length === 0) {
+    if (!task) {
         ctx.reply("🎉 *Congratulations!* You have completed all available tasks!", { parse_mode: "Markdown" });
         return;
     }
 
-    // Construct the task message for available tasks
-    let taskMessage = "<b>Available Tasks:</b>\n\n";
-    tasks.forEach(task => {
-        taskMessage += `📋 <b>Task:</b> ${task.name}\n` +
-                       `📝 <b>Description:</b> <i>${task.description}</i>\n` +
-                       `💰 <b>Points:</b> <code>${task.points}</code> points\n\n`;
-    });
+    // Show the task with a completion button
+    const taskMessage = `<b>New Task:</b>\n\n` +
+                        `📋 <b>Task:</b> ${task.name}\n` +
+                        `📝 <b>Description:</b> <i>${task.description}</i>\n` +
+                        `💰 <b>Points:</b> <code>${task.points}</code> points\n\n` +
+                        `<b>Click below to complete the task:</b>`;
 
-    taskMessage += "<b>Click on a task to continue and verify your task completion!</b>";
-
-    // Send task message with inline buttons including the continue button
-    ctx.reply(taskMessage, {
-        parse_mode: "HTML",
-        reply_markup: {
-            inline_keyboard: tasks.map(task => [
-                {
-                    text: `✅ Complete ${task.name}`,
-                    callback_data: `continue_task_${task.id}`, // Action to verify completion
-                }
-            ])
-        }
-    });
-});
-
-// Handle task continuation
-bot.action(/continue_task_(\w+)/, async (ctx) => {
-    const taskId = ctx.match[1];
-    const userId = ctx.from.id.toString();
-    const taskRef = db.collection('tasks').doc(taskId);
-    const taskDoc = await taskRef.get();
-
-    if (!taskDoc.exists) {
-        ctx.reply('❌ This task no longer exists.');
-        return;
-    }
-
-    const taskData = taskDoc.data();
-    const userData = await getUserData(userId);
-
-    // Check if the task is already completed
-    if (userData.completedTasks && userData.completedTasks.includes(taskId)) {
-        ctx.reply('🌝You have already completed this task.');
-        return;
-    }
-
-    // Show the link and ask for verification
-    const verifyMessage = `🔗 Verify that you completed the task: <b>${taskData.name}</b>\n` +
-                          `Click the button below to complete the task:\n`;
-
-    const verificationMessage = await ctx.reply(verifyMessage, {
+    const taskMsg = await ctx.reply(taskMessage, {
         parse_mode: "HTML",
         reply_markup: {
             inline_keyboard: [
                 [
                     {
-                        text: `✅ I have completed the task - ${taskData.name}`,
-                        callback_data: `verify_task_${taskId}`, // This action will handle verification
-                        url: taskData.link // The link is inside the button
+                        text: `✅ I have completed the task - ${task.name}`,
+                        callback_data: `verify_task_${task.id}`,
+                        url: task.link // Direct redirect link
                     }
                 ]
             ]
         }
     });
 
-    // Wait for 10 seconds, then delete the verification message and continue
-    setTimeout(async () => {
-        try {
-            // Delete the message after 10 seconds
-            await ctx.deleteMessage(verificationMessage.message_id);
-
-            // Notify the user that the task is being processed
-            ctx.reply(`✅ Task verification is complete! Your reward is processing...`);
-
-            // Add task to completed tasks
-            userData.completedTasks = userData.completedTasks || [];
-            userData.completedTasks.push(taskId);
-
-            // Update user balance and data
-            userData.balance += taskData.points;
-            await setUserData(userId, userData);
-
-            // Notify user of reward
-            ctx.reply(`💵 You've been rewarded with ${taskData.points} points! Your new balance is ${userData.balance} points.`);
-
-            // Send updated task list
-            await sendUpdatedTaskList(ctx, userId);
-        } catch (error) {
-            console.log('Failed to delete message:', error);
-        }
-    }, 10000); // 10 seconds delay
+    // Store the task message ID to delete it later
+    userData.currentTaskMessageId = taskMsg.message_id;
+    await setUserData(userId, userData);
 });
 
 // Handle task verification click
@@ -1393,8 +1328,17 @@ bot.action(/verify_task_(\w+)/, async (ctx) => {
 
     // Check if the task is already completed
     if (userData.completedTasks && userData.completedTasks.includes(taskId)) {
-        ctx.reply('🌝You have already completed this task.');
+        ctx.reply('🌝 You have already completed this task.');
         return;
+    }
+
+    // Delete the current task message to keep the chat clean
+    try {
+        if (userData.currentTaskMessageId) {
+            await ctx.deleteMessage(userData.currentTaskMessageId);
+        }
+    } catch (error) {
+        console.log('Failed to delete message:', error);
     }
 
     // Confirm task completion
@@ -1413,12 +1357,12 @@ bot.action(/verify_task_(\w+)/, async (ctx) => {
     // Notify user of reward
     ctx.reply(`💵 You've been rewarded with ${taskData.points} points! Your new balance is ${userData.balance} points.`);
 
-    // Send updated task list
-    await sendUpdatedTaskList(ctx, userId);
+    // Send the next available task
+    await sendNextTask(ctx, userId);
 });
 
-// Function to send the updated task list
-async function sendUpdatedTaskList(ctx, userId) {
+// Function to send the next available task
+async function sendNextTask(ctx, userId) {
     const tasksRef = db.collection('tasks');
     const snapshot = await tasksRef.get();
 
@@ -1431,31 +1375,42 @@ async function sendUpdatedTaskList(ctx, userId) {
     const userData = await getUserData(userId);
     const completedTasks = userData.completedTasks || [];
 
-    // Filter out completed tasks
-    const tasks = snapshot.docs
+    // Get the next uncompleted task
+    const task = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(task => !completedTasks.includes(task.id)); // Filter tasks already completed by the user
+        .find(task => !completedTasks.includes(task.id));
 
-    if (tasks.length === 0) {
-        ctx.reply('🎉 You have completed all available tasks!');
+    if (!task) {
+        ctx.reply("🎉 You have completed all available tasks!");
         return;
     }
 
-    // Construct task message for available (not completed) tasks
-    let taskMessage = 'Updated Tasks:\n\n';
-    tasks.forEach(task => {
-        taskMessage += `📋 Task: ${task.name}\n📝 Description: ${task.description}\n💰 Points: ${task.points}\n\n`;
-    });
+    // Show the next task with a completion button
+    const taskMessage = `<b>New Task:</b>\n\n` +
+                        `📋 <b>Task:</b> ${task.name}\n` +
+                        `📝 <b>Description:</b> <i>${task.description}</i>\n` +
+                        `💰 <b>Points:</b> <code>${task.points}</code> points\n\n` +
+                        `<b>Click below to complete the task:</b>`;
 
-    taskMessage += "Click on a task to complet  it.";
-
-    // Send the updated task list with inline buttons
-    ctx.reply(taskMessage, {
+    const taskMsg = await ctx.reply(taskMessage, {
+        parse_mode: "HTML",
         reply_markup: {
-            inline_keyboard: tasks.map(task => [{ text: `Complete ${task.name}`, callback_data: `complete_task_${task.id}` }])
+            inline_keyboard: [
+                [
+                    {
+                        text: `✅ I have completed the task - ${task.name}`,
+                        callback_data: `verify_task_${task.id}`,
+                        url: task.link // Direct redirect link
+                    }
+                ]
+            ]
         }
     });
-}
+
+    // Store the new task message ID
+    userData.currentTaskMessageId = taskMsg.message_id;
+    await setUserData(userId, userData);
+        }
 // Action to upload tasks
 // Action to upload tasks
 bot.action('tasks_upload', async (ctx) => {
