@@ -151,7 +151,7 @@ bot.start(async (ctx) => {
 
     if (userData && userData.paymentStatus === 'Registered') {
         // Registered user, show the main menu
-        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscussion", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -228,7 +228,7 @@ bot.action('back_to_menu', async (ctx) => {
     const userData = await getUserData(userId);
 
     if (userData && userData.paymentStatus === 'Registered') {
-        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson", {
+        const mainMenuMessage = await ctx.reply("Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscussion", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🏦Balance', callback_data: 'balance' }],
@@ -324,7 +324,7 @@ bot.action('back', async (ctx) => {
 
     if (userData && userData.paymentStatus === 'Registered') {
         const mainMenuMessage = await ctx.reply(
-            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson",
+            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscussion",
             {
                 reply_markup: {
                     inline_keyboard: [
@@ -403,7 +403,7 @@ bot.action('back_sup', async (ctx) => {
 
     if (userData && userData.paymentStatus === 'Registered') {
         const mainMenuMessage = await ctx.reply(
-            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson",
+            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscussion",
             {
                 reply_markup: {
                     inline_keyboard: [
@@ -495,7 +495,7 @@ bot.action('back_top', async (ctx) => {
 
     if (userData && userData.paymentStatus === 'Registered') {
         const mainMenuMessage = await ctx.reply(
-            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscusson",
+            "Welcome back!👋 Here you are open to many possibilities🌟.\nYou not only earn straight from the bot, but you also get updated on other ways to earn on Telegram and other places😯.\n\nBe sure to join our channel🤗: https://t.me/cryptomax05\n\nAnd chat group👉: https://t.me/CryptoMAXDiscussion",
             {
                 reply_markup: {
                     inline_keyboard: [
@@ -864,16 +864,17 @@ async function handleTransactionHash(ctx, userId, userData) {
     userData.expecting = null;
     await setUserData(userId, userData);
 
-    const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
-    const sentMessage = await ctx.telegram.sendPhoto('6963724844', userData.photoId, {
-        caption: adminMessage,
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: 'Accept', callback_data: 'accept_' + userId }],
-                [{ text: 'Decline', callback_data: 'decline_' + userId }]
-            ]
-        }
-    });
+    // Send the admin request message with accept/decline buttons
+const adminMessage = `Subscription request:\nUser's Name: ${userData.name}\nUser's Transaction Hash or Name: ${ctx.message.text}`;
+const sentMessage = await ctx.telegram.sendPhoto('6963724844', userData.photoId, {
+    caption: adminMessage,
+    reply_markup: {
+        inline_keyboard: [
+            [{ text: 'Accept', callback_data: 'accept_' + userId }],
+            [{ text: 'Decline', callback_data: 'decline_' + userId }]
+        ]
+    }
+});
 
     ctx.reply("🌟Your payment proof and transaction information have been submitted for approval🚀\n\nYour request is being processed; please be patient 🚀.");
     return sentMessage;
@@ -894,7 +895,6 @@ async function handleUSDTAddress(ctx, userId, userData) {
     await setUserData(userId, userData);
     await handleCryptoPackageSelection(ctx, userId);
 }
-
 // Function to handle admin accept action
 async function handleAdminAccept(ctx, userId) {
     await setUserData(userId, { paymentStatus: 'Registered' });
@@ -921,12 +921,18 @@ async function handleAdminAccept(ctx, userId) {
             ]
         }
     });
+
+    // Delete the admin request message
+    await ctx.deleteMessage();
 }
 
 // Function to handle admin decline action
 async function handleAdminDecline(ctx, userId) {
     await setUserData(userId, { paymentStatus: 'Declined' });
     await ctx.telegram.sendMessage(userId, "😭😭Your payment has been declined. Please make sure to provide the correct details or contact support for assistance🥹.");
+
+    // Delete the admin request message
+    await ctx.deleteMessage();
 }
 
 // Function to handle admin announcement
