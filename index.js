@@ -615,7 +615,8 @@ async function handleBankPackageSelection(ctx, userId) {
             inline_keyboard: [
                 [{ text: '5,000 Points - 5,000 Naira', callback_data: `bank_package_5000_${userId}` }],
                 [{ text: '10,000 Points - 10,000 Naira', callback_data: `bank_package_10000_${userId}` }],
-                [{ text: '15,000 Points - 15,000 Naira', callback_data: `bank_package_15000_${userId}` }]
+                [{ text: '15,000 Points - 15,000 Naira', callback_data: `bank_package_15000_${userId}` }],
+                [{ text: '20,000 Points - 20,000 Naira', callback_data: `bank_package_20000_${userId}` }]
             ]
         }
     });
@@ -631,7 +632,8 @@ async function handleCryptoPackageSelection(ctx, userId) {
             inline_keyboard: [
                 [{ text: '5,000 Points - 2.5 USDT', callback_data: `crypto_package_5000_2.5_${userId}` }],
                 [{ text: '10,000 Points - 5 USDT', callback_data: `crypto_package_10000_5_${userId}` }],
-                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_15000_7.5_${userId}` }]
+                [{ text: '15,000 Points - 7.5 USDT', callback_data: `crypto_package_15000_7.5_${userId}` }],
+                [{ text: '20,000 Points - 10 USDT', callback_data: `crypto_package_15000_10_${userId}` }]
             ]
         }
     });
@@ -953,6 +955,13 @@ async function handleAdminAnnouncement(ctx, announcementMessage) {
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id.toString();
     const userData = await getUserData(userId);
+
+    // Delete the user's input message after handling it
+    try {
+        await ctx.deleteMessage(ctx.message.message_id);
+    } catch (error) {
+        console.error("Failed to delete message:", error);
+    }
 
     if (!userData) {
         ctx.reply("User data not found. Please register first.");
