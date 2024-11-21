@@ -982,37 +982,47 @@ bot.on('text', async (ctx) => {
         case 'usdt_address':
             await handleUSDTAddress(ctx, userId, userData);
             break;
-
+        
         case 'name':
-            if (!taskData[userId]) taskData[userId] = {};
-            taskData[userId].name = ctx.message.text;
-            taskData[userId].step = 'description';
-            ctx.reply(`Task name set to: ${ctx.message.text}\n\nPlease enter the task description:`);
-            break;
+    if (!taskData[userId]) taskData[userId] = {};
+    taskData[userId].name = ctx.message.text;
+    taskData[userId].step = 'description';
+    ctx.reply(`Task name set to: ${ctx.message.text}\n\nPlease enter the task description:`);
+    break;
 
-        case 'description':
-            taskData[userId].description = ctx.message.text;
-            taskData[userId].step = 'points';
-            ctx.reply(`Task description set to: ${ctx.message.text}\n\nPlease enter the task points:`);
-            break;
+case 'description':
+    taskData[userId].description = ctx.message.text;
+    taskData[userId].step = 'points';
+    ctx.reply(`Task description set to: ${ctx.message.text}\n\nPlease enter the task points:`);
+    break;
 
-        case 'points':
-            const points = parseInt(ctx.message.text, 10);
-            if (isNaN(points)) {
-                ctx.reply("❌ Invalid input. Please enter a valid number for points.");
-            } else {
-                taskData[userId].points = points;
-                taskData[userId].step = 'redirect_link';
-                ctx.reply(`Task points set to: ${points}\n\nPlease enter the redirect link for this task:`);
-            }
-            break;
+case 'points':
+    const points = parseInt(ctx.message.text, 10);
+    if (isNaN(points)) {
+        ctx.reply("❌ Invalid input. Please enter a valid number for points.");
+    } else {
+        taskData[userId].points = points;
+        taskData[userId].step = 'redirect_link';
+        ctx.reply(`Task points set to: ${points}\n\nPlease enter the redirect link for this task:`);
+    }
+    break;
 
-        case 'redirect_link':
-            taskData[userId].link = ctx.message.text;
-            delete taskData[userId].step;
-            ctx.reply(`Redirect link set to: ${ctx.message.text}\n\nTask setup is complete.`);
-            break;
+case 'redirect_link':
+    taskData[userId].link = ctx.message.text;
+    taskData[userId].step = 'secret_code';
+    ctx.reply(`Redirect link set to: ${ctx.message.text}\n\n(Optional) Enter a secret code for this task. If none, type "skip":`);
+    break;
 
+case 'secret_code':
+    if (ctx.message.text.toLowerCase() !== 'skip') {
+        taskData[userId].secret_code = ctx.message.text;
+        ctx.reply(`Secret code set to: ${ctx.message.text}`);
+    } else {
+        ctx.reply("No secret code provided.");
+    }
+    delete taskData[userId].step;
+    ctx.reply(`✅ Task setup is complete. Use confirm finalize.`);
+        
         default:
             if (userId === '6963724844') {
                 const adminData = await getUserData(userId);
@@ -1432,8 +1442,7 @@ bot.action('tasks_upload', async (ctx) => {
     const message = await ctx.reply("Let's start creating a new task. Please choose an option:", {
         reply_markup: {
             inline_keyboard: [
-                [{ text: 'Enter Task Name', callback_data: 'enter_task_name' }],
-                [{ text: 'Tasks Link', callback_data: 'tasks_link' }],
+                [{ text: 'Start 👀', callback_data: 'enter_task_name' }],
                 [{ text: 'Confirm Task', callback_data: 'confirm_task' }]
             ]
         }
@@ -1450,42 +1459,33 @@ bot.action('enter_task_name', async (ctx) => {
     ctx.reply("Please send me the task name:");
 });
 
-// Handle entering task description
-bot.action('enter_task_description', async (ctx) => {
-    taskData[ctx.from.id] = taskData[ctx.from.id] || {};
-    taskData[ctx.from.id].step = 'description';
-    ctx.reply("Please send me the task description:");
-});
-
-// Handle setting task points
-bot.action('set_task_points', async (ctx) => {
-    taskData[ctx.from.id] = taskData[ctx.from.id] || {};
-    taskData[ctx.from.id].step = 'points';
-    ctx.reply("Please send the points for this task:");
-});
-
-// Collect task details via user messages
-
-
 // Confirm task creation
 bot.action('confirm_task', async (ctx) => {
     const userId = ctx.from.id;
     const task = taskData[userId];
 
     if (task.name && task.description && task.points && task.link) {
-        // Save the task in Firestore
-        await db.collection('tasks').add({
+        // Prepare task data for saving
+        const taskDataToSave = {
             name: task.name,
             description: task.description,
             points: task.points,
-            link: task.link
-        });
+            link: task.link,
+        };
+        if (task.secret_code) {
+            taskDataToSave.secret_code = task.secret_code; // Add secret code if present
+        }
+
+        // Save the task in Firestore
+        await db.collection('tasks').add(taskDataToSave);
+
         ctx.deleteMessage();
-        ctx.reply(`✅ Task "${task.name}" created successfully with a redirect link!`);
+        ctx.reply(`✅ Task "${task.name}" created successfully${task.secret_code ? " with a secret code!" : "!"}`);
     } else {
         ctx.reply("⚠️ You haven't completed all the task details. Please provide all the necessary information.");
     }
-});
+}); 
+
 // Admin views and deletes tasks
 bot.action('tasks_uploaded', async (ctx) => {
     const tasksRef = db.collection('tasks');
